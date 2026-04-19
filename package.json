@@ -42,6 +42,17 @@
 		"url": "git+https://github.com/techtrips/ai-assistant.git"
 	},
 	"keywords": [
+		"ai-assistant",		
+		"aiassistant",
+		"ai-assistant-react",
+		"chatbot",
+		"ai-chatbot",
+		"react-chatbot",
+		"react-ai-assistant",		
+		"ai-assistant-component-library",
+		"react-ai-assistant-component-library",		
+		"react-ai-chatbot",
+		"ai-chatbot-react",
 		"agent-ui",
 		"agent-ui-react",
 		"react-agent-ui",
@@ -62,8 +73,7 @@
 		"agent-framework-ui",
 		"react-agent-framework-ui",
 		"conversational-ui",
-		"react-conversational-ui",
-		"aiassistant",
+		"react-conversational-ui",		
 		"agentui",
 		"agentui-react",
 		"agentui-library",
@@ -74,9 +84,7 @@
 		"react-agentui-controls",
 		"agentui-react-controls",
 		"ai",
-		"assistant",
-		"openai",
-		"chatbot"
+		"assistant"			
 	],
 	"license": "MIT",
 	"author": "techtrips",
