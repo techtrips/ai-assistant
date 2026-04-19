@@ -269,7 +269,7 @@ export const useAIAssistant = ({
 		}
 		if (keywords.length === 0) return starterPrompts;
 
-		return starterPrompts.filter((p) => {
+		const matched = starterPrompts.filter((p) => {
 			const promptTags = (p.tags ?? []).map((t) => t.toLowerCase());
 			const title = p.title.toLowerCase();
 			const desc = (p.description ?? "").toLowerCase();
@@ -282,6 +282,7 @@ export const useAIAssistant = ({
 					name.includes(kw),
 			);
 		});
+		return matched.length > 0 ? matched : starterPrompts;
 	}, [starterPrompts, context]);
 
 	const contextValue: IAIAssistantContextValue = useMemo(
