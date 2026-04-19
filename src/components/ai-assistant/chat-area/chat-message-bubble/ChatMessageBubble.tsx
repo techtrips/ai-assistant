@@ -98,14 +98,15 @@ const RawDataFallback = ({ data }: { data?: Record<string, unknown> }) => {
 	if (!data) return null;
 	const payload = extractToolPayload(data);
 	if (!payload) return null;
+	const classes = useChatMessageBubbleStyles();
 	const json =
 		typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
 	return (
 		<div>
-			<p style={{ margin: "0 0 8px", fontSize: "12px", opacity: 0.7, fontStyle: "italic" }}>
+			<p className={classes.rawDataLabel}>
 				No template available. Showing raw data:
 			</p>
-			<pre style={{ fontFamily: "inherit", fontSize: "13px", whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0, background: "rgba(128,128,128,0.08)", padding: "10px", borderRadius: "6px" }}>
+			<pre className={classes.rawDataPre}>
 				{json}
 			</pre>
 		</div>

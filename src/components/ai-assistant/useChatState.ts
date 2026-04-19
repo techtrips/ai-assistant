@@ -2,8 +2,8 @@ import { useCallback, useRef, useState } from "react";
 import type { IChatAdapter } from "./adapters/types";
 import type { IChatMessage } from "./AIAssistant.types";
 
-let idCounter = 0;
-const nextId = () => `msg-${++idCounter}-${Date.now()}`;
+const nextId = () =>
+	`msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 const nextThreadId = () =>
 	`thread-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 

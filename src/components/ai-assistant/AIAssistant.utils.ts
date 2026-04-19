@@ -78,11 +78,23 @@ export const needsResolution = (message: IChatMessage): boolean => {
  * In-flight / resolved cache keyed by message ID.
  * Guarantees exactly one HTTP request per message regardless of
  * how many times React calls resolveMessage (StrictMode, re-renders, etc.).
+ * Limited to MAX_CACHE_SIZE entries to prevent memory leaks in long sessions.
  */
+const MAX_CACHE_SIZE = 200;
 const resolveCache = new Map<
 	string,
 	{ promise: Promise<string | undefined>; done: boolean; html?: string }
 >();
+
+const evictOldestEntries = () => {
+	if (resolveCache.size <= MAX_CACHE_SIZE) return;
+	const excess = resolveCache.size - MAX_CACHE_SIZE;
+	const keys = resolveCache.keys();
+	for (let i = 0; i < excess; i++) {
+		const { value } = keys.next();
+		if (value) resolveCache.delete(value);
+	}
+};
 
 /**
  * Returns the synchronously-available resolved HTML for a message,
@@ -124,6 +136,7 @@ export const resolveMessage = (
 	const promise = resolveMessageImpl(message, service, model, theme, settings);
 	const entry = { promise, done: false, html: undefined as string | undefined };
 	resolveCache.set(message.id, entry);
+	evictOldestEntries();
 	promise
 		.then((html) => {
 			entry.done = true;

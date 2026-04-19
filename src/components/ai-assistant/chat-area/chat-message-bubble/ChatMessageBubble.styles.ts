@@ -91,4 +91,20 @@ export const useChatMessageBubbleStyles = makeStyles({
 		animationIterationCount: "infinite",
 		animationTimingFunction: "ease-in-out",
 	},
+	rawDataLabel: {
+		margin: "0 0 8px",
+		fontSize: "12px",
+		opacity: 0.7,
+		fontStyle: "italic",
+	},
+	rawDataPre: {
+		fontFamily: "inherit",
+		fontSize: "13px",
+		whiteSpace: "pre-wrap",
+		wordBreak: "break-word",
+		margin: "0",
+		backgroundColor: "rgba(128,128,128,0.08)",
+		...shorthands.padding("10px"),
+		...shorthands.borderRadius("6px"),
+	},
 });
