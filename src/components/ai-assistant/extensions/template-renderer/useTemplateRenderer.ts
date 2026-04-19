@@ -6,7 +6,7 @@ import type { ITemplate } from "../../AIAssistant.types";
 import type { ITemplate as IDesignerTemplate } from "../../../templates/templates.models";
 
 export const useTemplateRenderer = () => {
-	const { service, permissions } = useAIAssistantContext();
+	const { service, permissions, agentNames: contextAgentNames } = useAIAssistantContext();
 	const canManage = checkPermission(
 		permissions,
 		AIAssistantPermission.ManageTemplates,
@@ -27,8 +27,6 @@ export const useTemplateRenderer = () => {
 	const [deleting, setDeleting] = useState(false);
 	const [deleteError, setDeleteError] = useState("");
 
-	const [agentNames, setAgentNames] = useState<string[]>([]);
-
 	const [designTarget, setDesignTarget] = useState<ITemplate | null>(null);
 
 	useEffect(() => {
@@ -36,13 +34,9 @@ export const useTemplateRenderer = () => {
 			setLoading(false);
 			return;
 		}
-		Promise.all([
-			service.getTemplates(),
-			service.getAgentNames(),
-		]).then(([templateResult, agentResult]) => {
+		service.getTemplates().then((templateResult) => {
 			if (templateResult.data) setTemplates(templateResult.data);
 			if (templateResult.error) setError(templateResult.error);
-			if (agentResult.data) setAgentNames(agentResult.data);
 			setLoading(false);
 		});
 	}, [service]);
@@ -188,7 +182,7 @@ export const useTemplateRenderer = () => {
 		error,
 		searchQuery,
 		setSearchQuery,
-		agentNames,
+		agentNames: contextAgentNames,
 		fetchToolsForAgent,
 		panelTarget,
 		saving,

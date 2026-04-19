@@ -48,6 +48,7 @@ const DEFAULT_EXTENSIONS: AIAssistantExtension[] = [
 ];
 
 const CHAT_VIEW = "__chat__";
+const DEFAULT_AGENT = "Default Agent";
 const MOBILE_QUERY = "(max-width: 768px)";
 const subscribeMobile = (cb: () => void) => {
 	const mql = window.matchMedia(MOBILE_QUERY);
@@ -104,21 +105,25 @@ export const AIAssistant = ({
 
 	useEffect(() => {
 		if (!service) return;
+		let cancelled = false;
 
-		// Fetch agents, settings, and starter prompts in parallel
-		const agentsPromise = service.getAgentNames().catch(() => ({ data: undefined }));
+		const agentsPromise = service.getAgentNames().catch(() => ({ data: [] as string[] }));
 		const settingsPromise = Promise.all([
 			service.getUserSettings().catch(() => ({ data: undefined })),
 			service.getGlobalSettings().catch(() => ({ data: undefined })),
 		]);
 
-		// Wait for both agents and settings, then apply filtering
 		Promise.all([agentsPromise, settingsPromise]).then(
 			([agentsResult, [userResult, globalResult]]) => {
-				const allAgents = agentsResult.data ?? [];
+				if (cancelled) return;
+
+				// Fallback to DEFAULT_AGENT if API fails or returns empty
+				const allAgents = agentsResult.data && agentsResult.data.length > 0
+					? agentsResult.data
+					: [DEFAULT_AGENT];
 				allAgentNamesRef.current = allAgents;
 
-				// Merge settings — fallback to DEFAULT_SETTINGS on failure
+				// Merge settings
 				const merged = {
 					...DEFAULT_SETTINGS,
 					...(globalResult.data ?? {}),
@@ -132,24 +137,27 @@ export const AIAssistant = ({
 				}
 				setSettings(merged);
 
-				// Filter agent names by global visible agents
+				// Filter agent names by global visible agents (empty visibleAgents = show all)
 				const globalAgents = globalResult.data?.visibleAgents;
 				const filteredAgents =
 					globalAgents && globalAgents.length > 0
 						? allAgents.filter((a) => globalAgents.includes(a))
 						: allAgents;
-				setAgentNames(filteredAgents);
+				const effectiveAgents = filteredAgents.length > 0 ? filteredAgents : allAgents;
+				setAgentNames(effectiveAgents);
 
-				// Fetch starter prompts for the filtered agents
-				if (filteredAgents.length > 0) {
-					service.getStarterPrompts(filteredAgents).then((promptResult) => {
-						if (promptResult.data) {
+				// Fetch starter prompts
+				if (effectiveAgents.length > 0) {
+					service.getStarterPrompts(effectiveAgents).then((promptResult) => {
+						if (!cancelled && promptResult.data) {
 							setStarterPrompts(promptResult.data);
 						}
 					}).catch(() => { /* starter prompts unavailable */ });
 				}
 			},
 		);
+
+		return () => { cancelled = true; };
 	}, [service]);
 
 	const updateSettings = useCallback(
@@ -170,7 +178,7 @@ export const AIAssistant = ({
 			const va = global.visibleAgents;
 			const all = allAgentNamesRef.current;
 			const filtered = va && va.length > 0 ? all.filter((a) => va.includes(a)) : all;
-			setAgentNames(filtered);
+			setAgentNames(filtered.length > 0 ? filtered : all);
 		},
 		[],
 	);
