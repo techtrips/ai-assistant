@@ -10,7 +10,7 @@
 		"lint": "biome check .",
 		"format": "biome format .",
 		"lint-fix": "npx biome check . --write",
-		"versionupdate": "npm version patch",
+		"versionpatch": "npm version patch",
 		"postversion": "node scripts/postversion.js && git add README.md docs/ChangeLog.md && git commit --amend --no-edit",
 		"publish": "npm publish --access public"
 	},
