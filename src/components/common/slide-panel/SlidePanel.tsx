@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Button, mergeClasses } from "@fluentui/react-components";
 import { DismissRegular } from "@fluentui/react-icons";
-import type { ISlidePanelProps } from "./SlidePanel.models";
+import type { ISlidePanelProps } from "./SlidePanel.types";
 import { useSlidePanelStyles } from "./SlidePanel.styles";
 
 export const SlidePanel = (props: ISlidePanelProps) => {

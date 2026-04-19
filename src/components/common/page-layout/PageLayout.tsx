@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { mergeClasses } from "@fluentui/react-components";
 import { DismissRegular } from "@fluentui/react-icons";
-import type { IPageLayoutProps } from "./PageLayout.models";
+import type { IPageLayoutProps } from "./PageLayout.types";
 import { usePageLayoutStyles } from "./PageLayout.styles";
 
 export const PageLayout = (props: IPageLayoutProps) => {
