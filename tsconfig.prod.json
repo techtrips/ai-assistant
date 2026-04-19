@@ -1,0 +1,21 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"declaration": true,
+		"declarationMap": false
+	},
+	"exclude": [
+		"public",
+		"./src/components/common/layout",
+		"./src/App.tsx",
+		"./src/App.css",
+		"./src/index.tsx",
+		"./src/app.config.dev.json",
+		"./src/app.config.prod.json",
+		"./src/appConfig.ts",
+		"rspack.config.ts",
+		"./node_modules/*",
+		"./src/.env.d.ts",
+		"./src/main.tsx"
+	]
+}

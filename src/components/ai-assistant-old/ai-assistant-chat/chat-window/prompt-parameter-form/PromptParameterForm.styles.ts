@@ -1,0 +1,132 @@
+import { makeStyles, shorthands, tokens } from "@fluentui/react-components";
+
+export const usePromptFormStyles = makeStyles({
+	wrapper: {
+		display: "flex",
+		flexDirection: "column",
+		width: "100%",
+		backgroundColor: tokens.colorNeutralBackground3,
+		...shorthands.borderRadius("12px"),
+		...shorthands.border("1px", "solid", tokens.colorNeutralStroke2),
+		borderLeftWidth: "3px",
+		borderLeftStyle: "solid",
+		borderLeftColor: tokens.colorCompoundBrandStroke,
+		...shorthands.padding("10px", "14px", "10px", "14px"),
+		marginLeft: "3px",
+		boxSizing: "border-box",
+		transitionProperty: "border-color",
+		transitionDuration: "0.15s",
+		transitionTimingFunction: "ease",
+		":focus-within": {
+			borderTopColor: tokens.colorCompoundBrandStroke,
+			borderRightColor: tokens.colorCompoundBrandStroke,
+			borderBottomColor: tokens.colorCompoundBrandStroke,
+		},
+	},
+	topRow: {
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "space-between",
+		marginBottom: "6px",
+	},
+	titleBadge: {
+		display: "inline-flex",
+		alignItems: "center",
+		columnGap: "4px",
+		fontSize: tokens.fontSizeBase200,
+		fontWeight: tokens.fontWeightSemibold,
+		color: tokens.colorCompoundBrandForeground1,
+		lineHeight: "20px",
+		userSelect: "none",
+	},
+	dismissButton: {
+		minWidth: "24px",
+		width: "24px",
+		height: "24px",
+		...shorthands.borderRadius("6px"),
+		...shorthands.padding("0"),
+		color: tokens.colorNeutralForeground3,
+		":hover": {
+			color: tokens.colorNeutralForeground1,
+			backgroundColor: tokens.colorNeutralBackground3Hover,
+		},
+	},
+	fields: {
+		display: "flex",
+		flexDirection: "column",
+		rowGap: "8px",
+	},
+	inputRow: {
+		display: "flex",
+		alignItems: "center",
+		columnGap: "8px",
+	},
+	inputGrow: {
+		flex: 1,
+		minWidth: 0,
+	},
+	sendButtonSpacer: {
+		minWidth: "36px",
+		width: "36px",
+		height: "36px",
+		flexShrink: 0,
+	},
+	sendButton: {
+		minWidth: "36px",
+		width: "36px",
+		height: "36px",
+		...shorthands.borderRadius("50%"),
+		...shorthands.padding("0"),
+		flexShrink: 0,
+		color: tokens.colorNeutralForeground4,
+		backgroundColor: "transparent",
+		transitionProperty: "background-color, color",
+		transitionDuration: "0.15s",
+		":hover": {
+			backgroundColor: "transparent",
+			color: tokens.colorNeutralForeground4,
+		},
+	},
+	sendButtonActive: {
+		color: tokens.colorNeutralForegroundOnBrand,
+		backgroundColor: tokens.colorCompoundBrandBackground,
+		":hover": {
+			backgroundColor: tokens.colorCompoundBrandBackgroundHover,
+			color: tokens.colorNeutralForegroundOnBrand,
+		},
+	},
+});
+
+export const useFieldStyles = makeStyles({
+	input: {
+		width: "100%",
+		backgroundColor: tokens.colorNeutralBackground1,
+		color: tokens.colorNeutralForeground1,
+		...shorthands.borderRadius("8px"),
+		...shorthands.border("1px", "solid", tokens.colorNeutralStroke1),
+		"& input": {
+			width: "100%",
+			color: tokens.colorNeutralForeground1,
+			backgroundColor: "transparent",
+		},
+		"& input::placeholder": {
+			color: tokens.colorNeutralForeground3,
+			opacity: 1,
+		},
+		":hover": {
+			borderTopColor: tokens.colorNeutralStroke1Hover,
+			borderRightColor: tokens.colorNeutralStroke1Hover,
+			borderBottomColor: tokens.colorNeutralStroke1Hover,
+			borderLeftColor: tokens.colorNeutralStroke1Hover,
+		},
+		":focus-within": {
+			borderTopColor: tokens.colorCompoundBrandStroke,
+			borderRightColor: tokens.colorCompoundBrandStroke,
+			borderBottomColor: tokens.colorCompoundBrandStroke,
+			borderLeftColor: tokens.colorCompoundBrandStroke,
+			"::after": {
+				display: "none",
+			},
+		},
+	},
+});

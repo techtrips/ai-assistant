@@ -1,0 +1,12 @@
+{
+	"api": {
+		"baseUrl": "https://www.techtrips.in/api"
+	},
+	"agentConfig": {
+		"url": "https://agent.techtrips.in/agui"
+	},
+	"auth": {
+		"email": "",
+		"password": ""
+	}
+}

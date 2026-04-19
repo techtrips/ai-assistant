@@ -1,0 +1,65 @@
+import { makeStyles, shorthands, tokens } from "@fluentui/react-components";
+
+export const useDynamicTemplateRendererStyles = makeStyles({
+	assistantBlock: {
+		display: "flex",
+		flexDirection: "column",
+		alignItems: "flex-start",
+		...shorthands.gap("6px"),
+	},
+	assistantPreamble: {
+		display: "flex",
+		alignItems: "center",
+		...shorthands.gap("8px"),
+		color: "var(--agent-chat-muted)",
+		fontSize: tokens.fontSizeBase100,
+	},
+	avatar: {
+		width: "32px",
+		height: "32px",
+		borderRadius: "50%",
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundImage: "linear-gradient(135deg, #3367d6 0%, #5f4dd0 100%)",
+		color: "#ffffff",
+		flexShrink: 0,
+	},
+	cancelledMessage: {
+		marginLeft: "32px",
+		color: tokens.colorPaletteRedForeground1,
+		fontSize: "0.88rem",
+		lineHeight: "1.5",
+	},
+	assistantCard: {
+		width: "calc(100% - 32px)",
+		marginLeft: "32px",
+		backgroundColor: "var(--agent-chat-card)",
+		...shorthands.border("1px", "solid", "var(--agent-chat-border)"),
+		...shorthands.borderRadius("10px"),
+		...shorthands.padding("10px"),
+		boxSizing: "border-box",
+	},
+	localAssistantRichContent: {
+		width: "100%",
+		maxWidth: "100%",
+		minWidth: 0,
+	},
+	generatedAssistantHtml: {
+		width: "100%",
+		maxWidth: "100%",
+		minWidth: 0,
+		overflowX: "auto",
+	},
+	localAssistantBubble: {
+		maxWidth: "calc(78% - 32px)",
+		marginLeft: "32px",
+		backgroundColor: "var(--agent-chat-surface)",
+		color: "var(--agent-chat-fg)",
+		...shorthands.border("1px", "solid", "var(--agent-chat-border)"),
+		...shorthands.borderRadius("10px"),
+		...shorthands.padding("10px", "14px"),
+		fontSize: tokens.fontSizeBase200,
+		lineHeight: tokens.lineHeightBase200,
+	},
+});

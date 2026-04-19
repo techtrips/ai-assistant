@@ -1,0 +1,248 @@
+{
+	"id": "tpl-credit-request-001",
+	"name": "Credit Request Summary",
+	"description": "Displays a credit request with customer details, line items, and approval actions.",
+	"version": "1.0",
+	"card": {
+		"title": { "binding": "request.title", "value": "Credit Request" },
+		"subtitle": { "binding": "customer.name" },
+		"isCollapsible": true,
+		"defaultExpanded": true,
+		"layout": "row",
+		"gap": 16,
+		"children": [
+			{
+				"id": "statusBadge",
+				"type": "badge",
+				"label": "Status",
+				"binding": "request.statusDisplayName",
+				"colorBinding": "request.statusColor"
+			},
+			{
+				"id": "fulfillment",
+				"type": "progressBar",
+				"label": "Approval Progress",
+				"binding": "request.approvalProgress",
+				"max": 100
+			}
+		],
+		"sections": [
+			{
+				"id": "details",
+				"label": "Request Details",
+				"layout": "grid",
+				"columns": 3,
+				"gap": 12,
+				"children": [
+					{
+						"id": "requestId",
+						"type": "field",
+						"label": "Request ID",
+						"binding": "request.returnsIdentifier"
+					},
+					{
+						"id": "requestDate",
+						"type": "field",
+						"label": "Request Date",
+						"binding": "request.requestSubmitDate",
+						"format": "date"
+					},
+					{
+						"id": "amount",
+						"type": "field",
+						"label": "Credit Amount",
+						"binding": "request.creditAmount",
+						"format": "currency"
+					},
+					{
+						"id": "currency",
+						"type": "field",
+						"label": "Currency",
+						"binding": "request.currency"
+					},
+					{
+						"id": "reason",
+						"type": "field",
+						"label": "Reason",
+						"binding": "request.reason"
+					},
+					{
+						"id": "priority",
+						"type": "field",
+						"label": "Priority",
+						"binding": "request.priority"
+					}
+				]
+			},
+			{
+				"id": "customer",
+				"label": "Customer Information",
+				"isCollapsible": true,
+				"defaultExpanded": true,
+				"layout": "row",
+				"gap": 24,
+				"children": [
+					{
+						"id": "logo",
+						"type": "image",
+						"binding": "customer.logoUrl",
+						"alt": "Customer logo",
+						"height": 36
+					}
+				],
+				"subsections": [
+					{
+						"id": "custContact",
+						"label": "Contact",
+						"layout": "grid",
+						"columns": 2,
+						"children": [
+							{
+								"id": "custName",
+								"type": "field",
+								"label": "Name",
+								"binding": "customer.contactName"
+							},
+							{
+								"id": "custEmail",
+								"type": "field",
+								"label": "Email",
+								"binding": "customer.email"
+							},
+							{
+								"id": "custPhone",
+								"type": "field",
+								"label": "Phone",
+								"binding": "customer.phone"
+							},
+							{
+								"id": "custRegion",
+								"type": "field",
+								"label": "Region",
+								"binding": "customer.region"
+							}
+						]
+					},
+					{
+						"id": "custBilling",
+						"label": "Billing Address",
+						"isCollapsible": true,
+						"defaultExpanded": false,
+						"layout": "stack",
+						"children": [
+							{
+								"id": "addr1",
+								"type": "field",
+								"label": "Street",
+								"binding": "customer.address.street"
+							},
+							{
+								"id": "addr2",
+								"type": "field",
+								"label": "City",
+								"binding": "customer.address.city"
+							},
+							{
+								"id": "addr3",
+								"type": "field",
+								"label": "Country",
+								"binding": "customer.address.country"
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "lineItems",
+				"label": "Line Items",
+				"isCollapsible": true,
+				"defaultExpanded": true,
+				"children": [
+					{
+						"id": "itemsTable",
+						"type": "table",
+						"binding": "lineItems",
+						"columns": [
+							{
+								"key": "sku",
+								"header": "SKU",
+								"field": "sku",
+								"minWidth": 110,
+								"sortable": true
+							},
+							{
+								"key": "description",
+								"header": "Description",
+								"field": "description",
+								"minWidth": 220
+							},
+							{
+								"key": "qty",
+								"header": "Qty",
+								"field": "quantity",
+								"minWidth": 60,
+								"sortable": true,
+								"format": "number"
+							},
+							{
+								"key": "unitPrice",
+								"header": "Unit Price",
+								"field": "unitPrice",
+								"minWidth": 110,
+								"sortable": true,
+								"format": "currency"
+							},
+							{
+								"key": "lineTotal",
+								"header": "Total",
+								"field": "lineTotal",
+								"minWidth": 110,
+								"sortable": true,
+								"format": "currency"
+							}
+						],
+						"onRowClickPrompt": "View details for line item {lineItemId}"
+					}
+				]
+			},
+			{
+				"id": "actions",
+				"label": "Actions",
+				"layout": "row",
+				"gap": 8,
+				"children": [
+					{
+						"id": "approveBtn",
+						"type": "button",
+						"label": "Approve Credit",
+						"prompt": "Approve credit request {requestId} for amount {amount}",
+						"dataBindings": {
+							"requestId": "request.returnsIdentifier",
+							"amount": "request.creditAmount"
+						},
+						"appearance": "primary"
+					},
+					{
+						"id": "rejectBtn",
+						"type": "button",
+						"label": "Reject",
+						"prompt": "Reject credit request {requestId}",
+						"dataBindings": { "requestId": "request.returnsIdentifier" },
+						"appearance": "outline"
+					},
+					{
+						"id": "detailsBtn",
+						"type": "button",
+						"label": "View Full Order",
+						"prompt": "Show full order details for order {orderId} (request {requestId})",
+						"dataBindings": {
+							"requestId": "request.returnsIdentifier",
+							"orderId": "request.orderId"
+						},
+						"appearance": "subtle"
+					}
+				]
+			}
+		]
+	}
+}

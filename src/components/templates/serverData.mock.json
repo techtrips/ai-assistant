@@ -1,0 +1,51 @@
+{
+	"request": {
+		"title": "Credit Request — CR-2024-00142",
+		"returnsIdentifier": "CR-2024-00142",
+		"orderId": "ORD-2024-78901",
+		"requestSubmitDate": "2026-02-14T09:30:00Z",
+		"creditAmount": 4250.0,
+		"currency": "USD",
+		"reason": "Defective units in shipment — batch #B7721",
+		"priority": "High",
+		"statusDisplayName": "Pending Approval",
+		"statusColor": "warning",
+		"approvalProgress": 65
+	},
+	"customer": {
+		"name": "Contoso Ltd.",
+		"contactName": "Jane Doe",
+		"email": "jane.doe@contoso.com",
+		"phone": "+1 (425) 555-0142",
+		"region": "North America — West",
+		"logoUrl": "https://img.logoipsum.com/327.svg",
+		"address": {
+			"street": "1234 Innovation Way",
+			"city": "Redmond, WA 98052",
+			"country": "United States"
+		}
+	},
+	"lineItems": [
+		{
+			"sku": "HW-SURFACE-PRO-9",
+			"description": "Surface Pro 9 — 256GB / 16GB",
+			"quantity": 5,
+			"unitPrice": 1599.99,
+			"lineTotal": 7999.95
+		},
+		{
+			"sku": "HW-SURFACE-KB-01",
+			"description": "Surface Pro Signature Keyboard",
+			"quantity": 5,
+			"unitPrice": 279.99,
+			"lineTotal": 1399.95
+		},
+		{
+			"sku": "ACC-USB-C-DOCK",
+			"description": "USB-C Travel Hub",
+			"quantity": 3,
+			"unitPrice": 89.99,
+			"lineTotal": 269.97
+		}
+	]
+}

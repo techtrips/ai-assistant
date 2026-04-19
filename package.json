@@ -1,0 +1,83 @@
+{
+	"name": "@techtrips/ai-assistant",
+	"module": "lib/index.js",
+	"types": "lib/index.d.ts",
+	"version": "0.1.0",
+	"scripts": {
+		"clean": "rimraf lib",
+		"build": "npm run clean && tsc -p tsconfig.prod.json",
+		"dev": "rspack dev",
+		"lint": "biome check .",
+		"format": "biome format .",
+		"lint-fix": "npx biome check . --write",
+		"versionupdate": "npm version patch",
+		"postversion": "node scripts/postversion.js && git add README.md docs/ChangeLog.md && git commit --amend --no-edit"
+	},
+	"dependencies": {
+		"@ag-ui/client": "^0.0.48",
+		"@ag-ui/core": "^0.0.48",
+		"@fluentui/react-components": "^9.73.6",
+		"react": "^19.2.3",
+		"react-dom": "^19.2.3",
+		"react-router": "^7.13.2"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.9",
+		"@rspack/cli": "^1.7.10",
+		"@rspack/core": "^1.7.10",
+		"@rspack/plugin-react-refresh": "^1.6.0",
+		"@types/react": "^19.2.8",
+		"@types/react-dom": "^19.2.3",
+		"process": "^0.11.10",
+		"react-refresh": "^0.18.0",
+		"rimraf": "^6.1.3",
+		"typescript": "^5.9.3"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/techtrips/ai-assistant.git"
+	},
+	"keywords": [
+		"agent-ui",
+		"agent-ui-react",
+		"react-agent-ui",
+		"agent-ui-react",
+		"react-agent-ui",
+		"ag-ui",
+		"ag-ui-react",
+		"ag-ui-controls",
+		"react-ag-ui",
+		"agent-ui-controls",
+		"react-agent-ui-controls",
+		"agent-ui-react-controls",
+		"ai-assistant-ui",
+		"ai-assistant-ui-react",
+		"react-ai-assistant-ui",
+		"agent-based-ui",
+		"react-agent-based-ui",
+		"agent-framework-ui",
+		"react-agent-framework-ui",
+		"conversational-ui",
+		"react-conversational-ui",
+		"aiassistant",
+		"agentui",
+		"agentui-react",
+		"agentui-library",
+		"agentui-component-library",
+		"react-agentui-library",
+		"react-agentui-component-library",
+		"agentui-controls",
+		"react-agentui-controls",
+		"agentui-react-controls",
+		"ai",
+		"assistant",
+		"openai",
+		"chatbot"
+	],
+	"license": "MIT",
+	"author": "techtrips",
+	"description": "A React component library for building agent-based AI assistant"
+}
