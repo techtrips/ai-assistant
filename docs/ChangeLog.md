@@ -1,6 +1,6 @@
 # Release Notes
 
-All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
+All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.1/) and the project uses [Semantic Versioning](https://semver.org/).
 
 ---
 
@@ -8,7 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| [0.1.1](#011--2026-04-19) | 2026-04-19 | - |
+| [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
 
@@ -18,15 +18,22 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 ### Added
 
-- _Update this section before publishing_
+- **Settings extension** — new sidebar extension for user and global settings management, gated by `ManageSettings` permission.
+- **Parameterized starter prompts** — prompt text supports `{paramName}` (required) and `{paramName?}` (optional) placeholders. Selecting a parameterized prompt opens `PromptParameterForm` with input fields for each parameter.
+- **`refreshStarterPrompts`** — new context callback; starter prompt list auto-refreshes after save or delete in the StarterPrompts extension.
+- **`THEME_VARS`** — module-level constant for CSS custom properties, replacing per-render `useMemo`.
 
 ### Changed
 
-- _Update this section before publishing_
-
-### Fixed
-
-- _Update this section before publishing_
+- **`AIAssistant.tsx` is now JSX-only** — all state, effects, callbacks, and memos extracted into the `useAIAssistant` orchestrator hook.
+- **File naming convention** — `*.types.ts` for pure type/interface files, `*.models.ts` for files with runtime code (enums, constants, functions). Renamed `SlidePanel.models.ts`, `PageLayout.models.ts`, `common.models.ts`, `ControlEditor.models.ts` to `.types.ts`.
+- **Removed `ai-assistant-old` dependency** — all types (`IActionArgs`, `ITemplateInfo`, `ITemplateComponentProps`, `TemplateComponent`) moved into `templates.models.ts`. `IAIAssistantAgent` inlined in `Home.models.ts`. The `ai-assistant-old` folder can now be safely deleted.
+- **`Settings` added to `extensions/index.ts`** barrel export for consistency.
+- **Message IDs** now use `Date.now() + Math.random()` instead of a shared mutable counter.
+- **`resolveCache`** now uses LRU eviction (max 200 entries) to prevent memory leaks in long sessions.
+- **`RawDataFallback`** inline styles replaced with `makeStyles` (`rawDataLabel`, `rawDataPre`).
+- **Starter prompt form** — removed info icon tooltip from Prompt field; parameter syntax guidance moved to the field description.
+- **Documentation updated** — `AGENTS.md`, `docs/AIAssistant.md`, and `.github/copilot-instructions.md` refreshed to reflect current architecture, props, extensions, theming, and conventions.
 
 ---
 
