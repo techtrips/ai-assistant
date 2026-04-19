@@ -1,6 +1,6 @@
 # Release Notes
 
-All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.3/) and the project uses [Semantic Versioning](https://semver.org/).
+All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.4/) and the project uses [Semantic Versioning](https://semver.org/).
 
 ---
 
@@ -8,7 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| [0.1.4](#014--2026-04-19) | 2026-04-19 | - |
+| [0.1.4](#014--2026-04-19) | 2026-04-19 | Context-aware starter prompts, order field fix |
 | [0.1.3](#013--2026-04-19) | 2026-04-19 | TemplateForm error handling, removed unused export, updated keywords |
 | [0.1.2](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
@@ -21,15 +21,12 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 ### Added
 
-- _Update this section before publishing_
-
-### Changed
-
-- _Update this section before publishing_
+- **Context-aware starter prompts** — `AIAssistant` accepts a new optional `context` prop (`IAIAssistantContext`) with `page`, `url`, `tags`, and arbitrary string keys. When provided, starter prompt chips are filtered by matching context keywords against each prompt's tags, title, description, and agent name. As the user navigates pages, updating `context` reactively re-filters the visible chips.
+- **`IAIAssistantContext` type** — exported as `AIAssistantContext` from the package for consumer use.
 
 ### Fixed
 
-- _Update this section before publishing_
+- **Order field stale closure** — `handleSubmit` in `useStarterPromptForm` now reads form state via `useRef` instead of a closure-captured `form`, preventing stale values when the user edits the order field and submits quickly.
 
 ---
 
