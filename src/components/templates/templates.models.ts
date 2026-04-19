@@ -2,7 +2,29 @@
 // Control type discriminant
 // ---------------------------------------------------------------------------
 
-import { IActionArgs } from "../ai-assistant-old/AIAssistant.models";
+import type { ComponentType } from "react";
+
+// ---------------------------------------------------------------------------
+// Types previously in ai-assistant-old — now owned by templates
+// ---------------------------------------------------------------------------
+
+export interface IActionArgs {
+	prompt: string;
+	data?: Record<string, unknown>;
+}
+
+export interface ITemplateComponentProps {
+	data?: Record<string, unknown>;
+	onAction?: (action: string, payload: IActionArgs) => void;
+}
+
+export type TemplateComponent = ComponentType<ITemplateComponentProps>;
+
+export interface ITemplateInfo {
+	templateId: string;
+	isStoredInDb?: boolean;
+	data: Record<string, unknown>;
+}
 
 export enum ControlType {
 	Field = "field",

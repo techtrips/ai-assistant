@@ -41,7 +41,7 @@ import {
 	extractBindingPaths,
 	validateTemplateJson,
 } from "./TemplateDesigner.utils";
-import { IActionArgs } from "../../ai-assistant-old/AIAssistant.models";
+import type { IActionArgs } from "../templates.models";
 
 const MODE_OPTIONS: {
 	key: TemplateDesignerMode;

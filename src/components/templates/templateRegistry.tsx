@@ -3,7 +3,7 @@ import type {
 	ITemplateInfo,
 	TemplateComponent,
 	ITemplateComponentProps,
-} from "../ai-assistant-old/AIAssistant.models";
+} from "./templates.models";
 import templateConfig from "./templates.config.json";
 
 const lazyTemplates: Record<string, TemplateComponent> = {};
