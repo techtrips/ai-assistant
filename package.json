@@ -12,7 +12,7 @@
 		"lint-fix": "npx biome check . --write",
 		"versionpatch": "npm version patch",
 		"postversion": "node scripts/postversion.js && git add README.md docs/ChangeLog.md && git commit --amend --no-edit",
-		"publish": "npm publish --access public"
+		"publishpackage": "npm publish --access public"
 	},
 	"dependencies": {
 		"@ag-ui/client": "^0.0.48",
