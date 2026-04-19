@@ -2,7 +2,6 @@ export { AIAssistant } from "./AIAssistant";
 export type {
 	IAIAssistantProps as AIAssistantProps,
 	IChatMessage as ChatMessage,
-	IAIAssistantAgent as AIAssistantAgent,
 } from "./AIAssistant.types";
 export type {
 	IChatAdapter as ChatAdapter,

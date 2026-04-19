@@ -11,13 +11,16 @@ export const ChatMessageBubble = ({
 	renderMessage,
 }: IChatMessageBubbleProps) => {
 	const classes = useChatMessageBubbleStyles();
-	const { service } = useAIAssistantContext();
+	const { service, theme } = useAIAssistantContext();
 	const { resolvedHtml, isLoading } = useResolveMessage(
 		message,
 		service,
-		renderMessage,
+		theme,
 	);
-	const customContent = renderMessage?.(message);
+
+	// Only offer renderMessage for assistant messages with agent data (tool calls)
+	const hasAgentData = message.role === "assistant" && !!message.data?.toolCalls;
+	const customContent = hasAgentData ? renderMessage?.(message) : undefined;
 
 	if (message.role === "user") {
 		return (
@@ -71,7 +74,7 @@ export const ChatMessageBubble = ({
 				</div>
 			) : html ? (
 				<div className={classes.assistantCard}>
-					<IsolatedHtmlRenderer html={html} />
+					<IsolatedHtmlRenderer html={html} theme={theme} />
 				</div>
 			) : (
 				<div className={classes.assistantBubble}>{message.content}</div>

@@ -1,9 +1,12 @@
 import {
 	Add16Regular,
 	Add24Regular,
-	Delete24Regular,
+	CheckmarkCircle12Regular,
+	Circle12Regular,
+	Delete20Regular,
 	DocumentRegular,
-	Edit24Regular,
+	Edit20Regular,
+	PaintBrush20Regular,
 	Search20Regular,
 } from "@fluentui/react-icons";
 import { defineExtension } from "../types";
@@ -12,6 +15,7 @@ import { PageLayout } from "../shared/page-layout";
 import { useTemplateRendererStyles } from "./TemplateRenderer.styles";
 import { useTemplateRenderer } from "./useTemplateRenderer";
 import { TemplateForm } from "./TemplateForm";
+import { TemplateDesigner } from "../../../templates/template-designer";
 
 const TemplateRendererPanel = ({ onClose }: IExtensionProps) => {
 	const classes = useTemplateRendererStyles();
@@ -39,6 +43,10 @@ const TemplateRendererPanel = ({ onClose }: IExtensionProps) => {
 		closePanel,
 		openDeleteDialog,
 		closeDeleteDialog,
+		designTarget,
+		openDesigner,
+		closeDesigner,
+		handleDesignerSave,
 	} = useTemplateRenderer();
 
 	if (!service) {
@@ -68,46 +76,76 @@ const TemplateRendererPanel = ({ onClose }: IExtensionProps) => {
 		</>
 	);
 
-	const renderRow = (template: (typeof templates)[0]) => (
-		<div key={template.id ?? template.name} className={classes.row}>
-			<div className={classes.rowContent}>
-				<div className={classes.rowTitleRow}>
-					<span className={classes.rowTitle}>{template.name}</span>
-					{template.agent && (
-						<span className={classes.agentBadge}>
-							{template.agent}
+	const renderRow = (template: (typeof templates)[0]) => {
+		const hasContent = !!template.content;
+		return (
+			<div key={template.id ?? template.name} className={classes.row}>
+				<div className={classes.rowContent}>
+					<div className={classes.rowTitleRow}>
+						<span className={classes.rowTitle}>{template.name}</span>
+						{template.agent && (
+							<span className={classes.agentBadge}>
+								{template.agent}
+							</span>
+						)}
+						<span
+							className={
+								hasContent
+									? classes.statusBadgeActive
+									: classes.statusBadgeEmpty
+							}
+							title={hasContent ? "Template designed" : "No design yet"}
+						>
+							{hasContent ? (
+								<CheckmarkCircle12Regular />
+							) : (
+								<Circle12Regular />
+							)}
+							{hasContent ? "Designed" : "Not designed"}
 						</span>
+					</div>
+					{template.description && (
+						<div className={classes.rowDescription}>
+							{template.description}
+						</div>
 					)}
 				</div>
-				{template.description && (
-					<div className={classes.rowDescription}>{template.description}</div>
+				{canManage && (
+					<div className={classes.rowActions}>
+						<button
+							className={classes.iconButton}
+							type="button"
+							title="Design template"
+							aria-label={`Design ${template.name}`}
+							disabled={!template.id}
+							onClick={() => openDesigner(template)}
+						>
+							<PaintBrush20Regular fontSize={16} />
+						</button>
+						<button
+							className={classes.iconButton}
+							type="button"
+							title="Edit details"
+							aria-label={`Edit ${template.name}`}
+							onClick={() => openEditPanel(template)}
+						>
+							<Edit20Regular fontSize={16} />
+						</button>
+						<button
+							className={classes.iconButton}
+							type="button"
+							title="Delete"
+							aria-label={`Delete ${template.name}`}
+							disabled={!template.id}
+							onClick={() => openDeleteDialog(template)}
+						>
+							<Delete20Regular fontSize={16} />
+						</button>
+					</div>
 				)}
 			</div>
-			{canManage && (
-				<div className={classes.rowActions}>
-					<button
-						className={classes.iconButton}
-						type="button"
-						title="Edit"
-						aria-label={`Edit ${template.name}`}
-						onClick={() => openEditPanel(template)}
-					>
-						<Edit24Regular fontSize={16} />
-					</button>
-					<button
-						className={classes.iconButton}
-						type="button"
-						title="Delete"
-						aria-label={`Delete ${template.name}`}
-						disabled={!template.id}
-						onClick={() => openDeleteDialog(template)}
-					>
-						<Delete24Regular fontSize={16} />
-					</button>
-				</div>
-			)}
-		</div>
-	);
+		);
+	};
 
 	const renderContent = () => {
 		if (loading) {
@@ -163,6 +201,23 @@ const TemplateRendererPanel = ({ onClose }: IExtensionProps) => {
 		}
 		return <div className={classes.list}>{filtered.map(renderRow)}</div>;
 	};
+
+	if (designTarget) {
+		const templateContent = designTarget.content
+			? designTarget.content
+			: undefined;
+		const dataSource = designTarget.data ? designTarget.data : undefined;
+
+		return (
+			<TemplateDesigner
+				template={templateContent}
+				dataSource={dataSource}
+				isReadOnly={!canManage}
+				onSave={handleDesignerSave}
+				onClose={closeDesigner}
+			/>
+		);
+	}
 
 	return (
 		<PageLayout

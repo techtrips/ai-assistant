@@ -54,7 +54,7 @@ export const useChatMessageBubbleStyles = makeStyles({
 		backgroundColor: "var(--agent-chat-card)",
 		...shorthands.border("1px", "solid", "var(--agent-chat-border)"),
 		...shorthands.borderRadius("4px", "16px", "16px", "16px"),
-		...shorthands.padding("10px", "16px"),
+		...shorthands.padding("14px", "18px"),
 		boxSizing: "border-box",
 	},
 	assistantBubble: {

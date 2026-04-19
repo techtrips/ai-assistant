@@ -3,6 +3,7 @@ import { useAIAssistantContext } from "../../AIAssistantContext";
 import { AIAssistantPermission } from "../../AIAssistant.types";
 import { checkPermission } from "../../AIAssistant.utils";
 import type { ITemplate } from "../../AIAssistant.types";
+import type { ITemplate as IDesignerTemplate } from "../../../templates/templates.models";
 
 export const useTemplateRenderer = () => {
 	const { service, permissions } = useAIAssistantContext();
@@ -27,6 +28,8 @@ export const useTemplateRenderer = () => {
 	const [deleteError, setDeleteError] = useState("");
 
 	const [agentNames, setAgentNames] = useState<string[]>([]);
+
+	const [designTarget, setDesignTarget] = useState<ITemplate | null>(null);
 
 	useEffect(() => {
 		if (!service) {
@@ -136,6 +139,46 @@ export const useTemplateRenderer = () => {
 		setDeleteTarget(null);
 	}, []);
 
+	const openDesigner = useCallback((template: ITemplate) => {
+		setDesignTarget(template);
+	}, []);
+
+	const closeDesigner = useCallback(() => {
+		setDesignTarget(null);
+	}, []);
+
+	const handleDesignerSave = useCallback(
+		async (
+			designerTemplate: IDesignerTemplate,
+			dataSource?: Record<string, unknown> | string,
+		) => {
+			if (!service || !designTarget?.id) return;
+			const updated: ITemplate = {
+				...designTarget,
+				content: JSON.stringify(designerTemplate),
+				data:
+					typeof dataSource === "string"
+						? dataSource
+						: dataSource
+							? JSON.stringify(dataSource)
+							: designTarget.data,
+			};
+			try {
+				const result = await service.updateTemplate(updated);
+				if (result.error) throw new Error(result.error);
+				setTemplates((prev) =>
+					prev.map((t) =>
+						t.id === designTarget.id ? (result.data ?? updated) : t,
+					),
+				);
+				setDesignTarget(result.data ?? updated);
+			} catch {
+				// silent — TemplateDesigner shows its own save feedback
+			}
+		},
+		[service, designTarget],
+	);
+
 	return {
 		service,
 		canManage,
@@ -160,5 +203,9 @@ export const useTemplateRenderer = () => {
 		closePanel,
 		openDeleteDialog,
 		closeDeleteDialog,
+		designTarget,
+		openDesigner,
+		closeDesigner,
+		handleDesignerSave,
 	};
 };

@@ -1,8 +1,8 @@
 import {
 	Add16Regular,
 	Add24Regular,
-	Delete24Regular,
-	Edit24Regular,
+	Delete20Regular,
+	Edit20Regular,
 	LightbulbRegular,
 	Search20Regular,
 } from "@fluentui/react-icons";
@@ -150,7 +150,7 @@ const StarterPromptsPanel = ({ onClose }: IExtensionProps) => {
 									aria-label={`Edit ${prompt.title}`}
 									onClick={() => openEditPanel(prompt)}
 								>
-									<Edit24Regular fontSize={16} />
+									<Edit20Regular fontSize={16} />
 								</button>
 								<button
 									className={classes.iconButton}
@@ -160,7 +160,7 @@ const StarterPromptsPanel = ({ onClose }: IExtensionProps) => {
 									disabled={!prompt.id}
 									onClick={() => openDeleteDialog(prompt)}
 								>
-									<Delete24Regular fontSize={16} />
+									<Delete20Regular fontSize={16} />
 								</button>
 							</div>
 						)}

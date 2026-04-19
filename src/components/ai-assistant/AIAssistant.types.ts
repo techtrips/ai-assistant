@@ -55,11 +55,6 @@ export interface IChatMessage {
 	data?: Record<string, unknown>;
 }
 
-export interface IAIAssistantAgent {
-	name: string;
-	description?: string;
-}
-
 export interface IAIAssistantProps {
 	adapter: IChatAdapter;
 	theme?: "light" | "dark";
@@ -72,6 +67,5 @@ export interface IAIAssistantProps {
 	renderMessage?: (message: IChatMessage) => ReactNode;
 	service?: IAIAssistantService;
 	permissions?: AIAssistantPermission[];
-	agents?: IAIAssistantAgent[];
 	onClose?: () => void;
 }

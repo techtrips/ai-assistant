@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import type { IAIAssistantService } from "./AIAssistant.services";
 import type { AIAssistantPermission, IChatMessage } from "./AIAssistant.types";
 
@@ -7,8 +6,13 @@ export const checkPermission = (
 	permission: AIAssistantPermission,
 ): boolean => permissions?.includes(permission) ?? false;
 
-export const buildSystemPrompt = (): string =>
-	`You are a UI generator. You receive data from an AI agent and produce a single, concise HTML page.
+export const buildSystemPrompt = (theme: "light" | "dark" = "light"): string => {
+	const colors =
+		theme === "dark"
+			? { bg: "#1e1e1e", text: "#e0e0e0", accent: "#4ea8f0", muted: "#a0a0a0", surface: "#2d2d2d", border: "#404040" }
+			: { bg: "#ffffff", text: "#333333", accent: "#0078d4", muted: "#6b6b6b", surface: "#f5f5f5", border: "#e0e0e0" };
+
+	return `You are a UI generator. You receive data from an AI agent and produce a single, concise HTML page.
 
 DESIGN PHILOSOPHY: Show ONLY what matters. Be brief. No fluff. No raw JSON. No redundant sections.
 
@@ -19,7 +23,7 @@ Rules:
     - Scope every CSS rule to one unique wrapper class generated per response (for example: ai-block-[Date.now()]-[random]).
     - Prefix all element classes with the same unique token and keep selectors nested under the wrapper.
     - Ensure no style can affect the host page or components outside the generated content.
-3. Light theme: white background, #333 text, accent #0078d4. Font: Segoe UI, system-ui.
+3. Theme: background ${colors.bg}, text ${colors.text}, accent ${colors.accent}, muted text ${colors.muted}, surface/card ${colors.surface}, borders ${colors.border}. Font: Segoe UI, system-ui.
 4. Show data in ONE clean section only \u2014 pick the best format:
    - Few records \u2192 compact cards (2-3 key fields each, single row grid)
    - Many records \u2192 a tight table (only the most important 4-5 columns)
@@ -34,6 +38,7 @@ Rules:
 12. Do NOT include starter prompts, follow-up suggestion chips, action buttons, or input controls.
 13. Follow-up prompts are rendered by the host app separately; never duplicate them inside result content.
 14. Generate responsive, mobile-friendly HTML that adapts across screen sizes and avoids horizontal and vertical scrollbars whenever possible.`;
+};
 
 export const normalizeGeneratedHtml = (raw: string): string => {
 	let html = raw.trim();
@@ -50,11 +55,20 @@ export const normalizeGeneratedHtml = (raw: string): string => {
 
 /**
  * Returns true when the message should go through the rendering pipeline.
- * Any assistant message with content qualifies — the pipeline falls back
- * to raw text if dynamic UI generation isn't possible.
+ * Only assistant messages with tool call data or an explicit templateId qualify.
+ * Plain text assistant responses render as text bubbles without resolution.
  */
-export const needsResolution = (message: IChatMessage): boolean =>
-	message.role === "assistant" && !!message.content?.trim();
+export const needsResolution = (message: IChatMessage): boolean => {
+	if (message.role !== "assistant") return false;
+	const data = message.data;
+	if (!data) return false;
+	const toolCalls = data.toolCalls as Array<{ name?: string }> | undefined;
+	const templateId =
+		(data.templateId as string) ??
+		(data.TemplateId as string) ??
+		toolCalls?.[0]?.name;
+	return !!templateId;
+};
 
 /**
  * In-flight / resolved cache keyed by message ID.
@@ -82,13 +96,12 @@ export const getResolvedFromCache = (
  * Resolves a single assistant message through the rendering pipeline.
  *
  * Priority chain:
- * 1. renderMessage callback — consumer-provided React renderer.
- * 2. Template from DB — fetched by templateId (tool name convention).
- * 3. generateDynamicUi — OpenAI-generated HTML.
- * 4. Raw content — plain text fallback.
+ * 1. Template from DB — fetched by templateId (tool name convention).
+ * 2. generateDynamicUi — OpenAI-generated HTML.
+ * 3. undefined — component falls back to raw text.
  *
- * Returns the resolved HTML string, or undefined if renderMessage handled
- * it (the component should render the ReactNode directly).
+ * Only called for messages that pass needsResolution (have tool data).
+ * The consumer's renderMessage callback is handled separately in the component.
  *
  * Results are cached by message ID.
  */
@@ -96,14 +109,14 @@ export const resolveMessage = (
 	message: IChatMessage,
 	service: IAIAssistantService,
 	model?: string,
-	renderMessage?: (message: IChatMessage) => ReactNode,
+	theme?: "light" | "dark",
 ): Promise<string | undefined> => {
 	if (message.role !== "assistant") return Promise.resolve(undefined);
 
 	const existing = resolveCache.get(message.id);
 	if (existing) return existing.promise;
 
-	const promise = resolveMessageImpl(message, service, model, renderMessage);
+	const promise = resolveMessageImpl(message, service, model, theme);
 	const entry = { promise, done: false, html: undefined as string | undefined };
 	resolveCache.set(message.id, entry);
 	promise
@@ -122,14 +135,9 @@ const resolveMessageImpl = async (
 	message: IChatMessage,
 	service: IAIAssistantService,
 	model?: string,
-	renderMessage?: (message: IChatMessage) => ReactNode,
+	theme?: "light" | "dark",
 ): Promise<string | undefined> => {
-	// Priority 1: Consumer-provided renderMessage callback
-	// If it returns a truthy ReactNode, signal to the component to use it directly.
-	if (renderMessage?.(message)) return undefined;
-
-	// Priority 2: Template from DB — fetch by templateId (convention: tool name = template name)
-	// Explicit templateId takes precedence, then derive from tool call name (convention: template name = tool name)
+	// Priority 1: Template from DB — fetch by templateId (convention: tool name = template name)
 	const toolCalls = message.data?.toolCalls as
 		| Array<{ name?: string }>
 		| undefined;
@@ -148,7 +156,7 @@ const resolveMessageImpl = async (
 		}
 	}
 
-	// Priority 3: Generate dynamic HTML via OpenAI
+	// Priority 2: Generate dynamic HTML via OpenAI
 	const toolPayload = message.data
 		? extractToolPayload(message.data)
 		: undefined;
@@ -158,19 +166,19 @@ const resolveMessageImpl = async (
 
 	if (dataStr) {
 		const customPrompt = ""; //message.customPrompt as string | undefined;
-		const prompt = [buildSystemPrompt(), customPrompt?.trim()]
+		const prompt = [buildSystemPrompt(theme), customPrompt?.trim()]
 			.filter(Boolean)
 			.join("\n\n");
 		try {
 			const raw = await service.generateDynamicUi(dataStr, prompt, model);
 			if (raw) return normalizeGeneratedHtml(raw) || undefined;
 		} catch {
-			/* fall through to raw text */
+			/* fall through */
 		}
 	}
 
-	// Priority 4: Return raw content
-	return message.content?.trim() || undefined;
+	// Priority 3: No resolution available
+	return undefined;
 };
 
 const extractToolPayload = (

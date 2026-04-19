@@ -5,7 +5,8 @@ import { checkPermission } from "../../AIAssistant.utils";
 import type { IStarterPrompt } from "../../AIAssistant.types";
 
 export const useStarterPrompts = () => {
-	const { service, permissions, sendMessage, agents } = useAIAssistantContext();
+	const { service, permissions, sendMessage, agentNames: contextAgentNames } =
+		useAIAssistantContext();
 	const canManage = checkPermission(
 		permissions,
 		AIAssistantPermission.ManageStarterPrompts,
@@ -27,19 +28,19 @@ export const useStarterPrompts = () => {
 	const [deleteError, setDeleteError] = useState("");
 
 	const agentNames = useMemo(() => {
-		const names = new Set<string>();
+		const names = new Set<string>(contextAgentNames);
 		for (const p of prompts) {
 			if (p.agentName?.trim()) names.add(p.agentName.trim());
 		}
 		return Array.from(names);
-	}, [prompts]);
+	}, [prompts, contextAgentNames]);
 
 	useEffect(() => {
 		if (!service) {
 			setLoading(false);
 			return;
 		}
-		service.getStarterPrompts(agents?.map((a) => a.name)).then((result) => {
+		service.getStarterPrompts(contextAgentNames).then((result) => {
 			if (result.data) setPrompts(result.data);
 			if (result.error) setError(result.error);
 			setLoading(false);

@@ -9,8 +9,8 @@ import {
 	StarterPrompts,
 	TemplateRenderer,
 	AIAssistantService,
+	AIAssistantPermission,
 } from "../../../ai-assistant";
-import { HOME_ASSISTANT_AGENTS } from "./Home.models";
 import { AppConfig } from "../../../../appConfig";
 import { useAuth } from "./useAuth";
 
@@ -46,6 +46,15 @@ export const Home = () => {
 
 	const extensions = useMemo(
 		() => [ConversationHistory, StarterPrompts, TemplateRenderer],
+		[],
+	);
+
+	const permissions = useMemo(
+		() => [
+			AIAssistantPermission.View,
+			AIAssistantPermission.ManageTemplates,
+			AIAssistantPermission.ManageStarterPrompts,
+		],
 		[],
 	);
 
@@ -101,8 +110,8 @@ export const Home = () => {
 							<AIAssistant
 								adapter={adapter}
 								extensions={extensions}
+								permissions={permissions}
 								service={assistantService}
-								agents={HOME_ASSISTANT_AGENTS}
 								onClose={handleToggleAssistant}
 							/>
 						</div>

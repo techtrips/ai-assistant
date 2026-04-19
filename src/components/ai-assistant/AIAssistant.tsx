@@ -44,6 +44,7 @@ const getIsMobile = () => window.matchMedia(MOBILE_QUERY).matches;
 
 export const AIAssistant = ({
 	adapter,
+	theme = "light",
 	greetingText,
 	headerText = "AI Assistant",
 	defaultFullScreen = false,
@@ -53,7 +54,6 @@ export const AIAssistant = ({
 	renderMessage,
 	service,
 	permissions = [AIAssistantPermission.View],
-	agents,
 	onClose,
 }: IAIAssistantProps) => {
 	const classes = useAIAssistantStyles();
@@ -75,6 +75,7 @@ export const AIAssistant = ({
 	} = useChatState(adapter);
 
 	const [starterPrompts, setStarterPrompts] = useState<IStarterPrompt[]>([]);
+	const [agentNames, setAgentNames] = useState<string[]>([]);
 
 	const isSidePanel = !effectiveFullScreen;
 	const {
@@ -83,14 +84,17 @@ export const AIAssistant = ({
 		onResizeStart,
 	} = useResizePanel(isSidePanel);
 
-	const agentNames = useMemo(() => agents?.map((a) => a.name), [agents]);
-
 	useEffect(() => {
 		if (!service) return;
-		service.getStarterPrompts(agentNames).then((result) => {
-			if (result.data) setStarterPrompts(result.data);
+		service.getAgentNames().then((result) => {
+			if (result.data) {
+				setAgentNames(result.data);
+				service.getStarterPrompts(result.data).then((promptResult) => {
+					if (promptResult.data) setStarterPrompts(promptResult.data);
+				});
+			}
 		});
-	}, [service, agentNames]);
+	}, [service]);
 
 	const contextValue = useMemo(
 		() => ({
@@ -102,8 +106,9 @@ export const AIAssistant = ({
 			setThreadId,
 			service,
 			permissions,
-			agents,
+			agentNames,
 			starterPrompts,
+			theme,
 		}),
 		[
 			sendMessage,
@@ -114,8 +119,9 @@ export const AIAssistant = ({
 			setThreadId,
 			service,
 			permissions,
-			agents,
+			agentNames,
 			starterPrompts,
+			theme,
 		],
 	);
 

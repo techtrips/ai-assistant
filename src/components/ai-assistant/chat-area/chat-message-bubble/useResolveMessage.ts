@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { IAIAssistantService } from "../../AIAssistant.services";
 import type { IChatMessage } from "../../AIAssistant.types";
@@ -16,7 +15,7 @@ export interface IUseResolveMessageResult {
 export const useResolveMessage = (
 	message: IChatMessage,
 	service: IAIAssistantService | undefined,
-	renderMessage?: (message: IChatMessage) => ReactNode,
+	theme?: "light" | "dark",
 ): IUseResolveMessageResult => {
 	const skip = !needsResolution(message) || !service;
 
@@ -34,7 +33,7 @@ export const useResolveMessage = (
 	const serviceRef = useRef(service);
 	serviceRef.current = service;
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: message tracked by message.id; renderMessage is a stable prop callback
+	// biome-ignore lint/correctness/useExhaustiveDependencies: message tracked by message.id
 	useEffect(() => {
 		if (skip) return;
 
@@ -48,7 +47,7 @@ export const useResolveMessage = (
 		const svc = serviceRef.current!;
 		let disposed = false;
 
-		resolveMessage(message, svc, undefined, renderMessage)
+		resolveMessage(message, svc, undefined, theme)
 			.then((html) => {
 				if (!disposed) setResult({ html });
 			})

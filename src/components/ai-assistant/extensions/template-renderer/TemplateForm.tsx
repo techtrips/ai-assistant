@@ -95,14 +95,10 @@ export const TemplateForm = ({
 					Select the agent this template belongs to
 				</div>
 				{target ? (
-					<input
-						className={classes.input}
-						value={form.agent}
-						disabled
-					/>
+					<div className={classes.readOnlyValue}>{form.agent}</div>
 				) : (
 					<select
-						className={classes.input}
+						className={classes.select}
 						value={form.agent}
 						onChange={(e) => handleAgentChange(e.target.value)}
 					>
@@ -121,14 +117,10 @@ export const TemplateForm = ({
 					Select the agent tool this template renders
 				</div>
 				{target ? (
-					<input
-						className={classes.input}
-						value={form.name}
-						disabled
-					/>
+					<div className={classes.readOnlyValue}>{form.name}</div>
 				) : (
 					<select
-						className={classes.input}
+						className={classes.select}
 						value={form.name}
 						disabled={!form.agent || loadingTools}
 						onChange={(e) =>
