@@ -1,6 +1,6 @@
 # Release Notes
 
-All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.2/) and the project uses [Semantic Versioning](https://semver.org/).
+All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.3/) and the project uses [Semantic Versioning](https://semver.org/).
 
 ---
 
@@ -8,7 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| [0.1.3](#013--2026-04-19) | 2026-04-19 | - |
+| [0.1.3](#013--2026-04-19) | 2026-04-19 | TemplateForm error handling, removed unused export, updated keywords |
 | [0.1.2](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
@@ -20,15 +20,15 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 ### Added
 
-- _Update this section before publishing_
+- **TemplateForm error handling** — tool fetching now catches errors and displays inline error messages (`fieldError` style) when tools fail to load or none are available for the selected agent.
 
 ### Changed
 
-- _Update this section before publishing_
+- **Package keywords** — updated `package.json` keywords for improved npm discoverability.
 
 ### Fixed
 
-- _Update this section before publishing_
+- **Removed unused export** — removed `export * from "./common"` from `components/index.ts` to clean up the public API surface.
 
 ---
 
