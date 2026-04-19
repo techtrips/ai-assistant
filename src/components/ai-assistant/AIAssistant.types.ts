@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
+import type { IAIAssistantService } from "./AIAssistant.services";
 import type { IChatAdapter } from "./adapters/types";
 import type { AIAssistantExtension } from "./extensions/types";
-import type { IAIAssistantService } from "./AIAssistant.services";
 
 /* ── Data models ── */
 
@@ -77,6 +77,13 @@ export interface IChatMessage {
 	data?: Record<string, unknown>;
 }
 
+export interface IAIAssistantContext {
+	page?: string;
+	url?: string;
+	tags?: string[];
+	[key: string]: unknown;
+}
+
 export interface IAIAssistantProps {
 	adapter: IChatAdapter;
 	theme?: "light" | "dark";
@@ -89,5 +96,6 @@ export interface IAIAssistantProps {
 	renderMessage?: (message: IChatMessage) => ReactNode;
 	service?: IAIAssistantService;
 	permissions?: AIAssistantPermission[];
+	context?: IAIAssistantContext;
 	onClose?: () => void;
 }

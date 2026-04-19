@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import {
 	Bot20Regular,
 	Chat20Regular,
@@ -8,8 +7,9 @@ import {
 	Tag20Regular,
 	TextDescription20Regular,
 } from "@fluentui/react-icons";
-import { SlidePanel } from "../shared/slide-panel";
+import type { ReactNode } from "react";
 import type { IStarterPrompt } from "../../AIAssistant.types";
+import { SlidePanel } from "../shared/slide-panel";
 import { useStarterPromptFormStyles } from "./StarterPromptForm.styles";
 import { useStarterPromptForm } from "./useStarterPromptForm";
 

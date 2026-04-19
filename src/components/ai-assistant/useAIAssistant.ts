@@ -1,25 +1,28 @@
+import { tokens } from "@fluentui/react-components";
 import {
+	type CSSProperties,
 	useCallback,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
 	useSyncExternalStore,
-	type CSSProperties,
 } from "react";
-import { tokens } from "@fluentui/react-components";
-import type { IAIAssistantProps } from "./AIAssistant.types";
+import type {
+	IAIAssistantProps,
+	IAIAssistantSettings,
+	IStarterPrompt,
+} from "./AIAssistant.types";
 import { AIAssistantPermission, DEFAULT_SETTINGS } from "./AIAssistant.types";
-import type { IAIAssistantSettings, IStarterPrompt } from "./AIAssistant.types";
 import { checkPermission } from "./AIAssistant.utils";
-import { useChatState } from "./useChatState";
-import { useResizePanel } from "./useResizePanel";
+import type { IAIAssistantContextValue } from "./AIAssistantContext";
 import { ConversationHistory } from "./extensions/conversation-history";
+import { Settings } from "./extensions/settings";
 import { StarterPrompts } from "./extensions/starter-prompts";
 import { TemplateRenderer } from "./extensions/template-renderer";
-import { Settings } from "./extensions/settings";
 import type { AIAssistantExtension } from "./extensions/types";
-import type { IAIAssistantContextValue } from "./AIAssistantContext";
+import { useChatState } from "./useChatState";
+import { useResizePanel } from "./useResizePanel";
 
 const EXTENSION_PERMISSIONS: Record<string, AIAssistantPermission> = {
 	prompts: AIAssistantPermission.ManageStarterPrompts,
@@ -65,6 +68,7 @@ export const useAIAssistant = ({
 	extensions,
 	service,
 	permissions = [AIAssistantPermission.View],
+	context,
 }: Pick<
 	IAIAssistantProps,
 	| "adapter"
@@ -73,6 +77,7 @@ export const useAIAssistant = ({
 	| "extensions"
 	| "service"
 	| "permissions"
+	| "context"
 >) => {
 	const isMobile = useSyncExternalStore(subscribeMobile, getIsMobile);
 	const [isFullScreen, setIsFullScreen] = useState(defaultFullScreen);
@@ -95,7 +100,8 @@ export const useAIAssistant = ({
 	const [starterPrompts, setStarterPrompts] = useState<IStarterPrompt[]>([]);
 	const [starterPromptsLoading, setStarterPromptsLoading] = useState(true);
 	const [agentNames, setAgentNames] = useState<string[]>([]);
-	const [settings, setSettings] = useState<IAIAssistantSettings>(DEFAULT_SETTINGS);
+	const [settings, setSettings] =
+		useState<IAIAssistantSettings>(DEFAULT_SETTINGS);
 	const [activeParameterizedPrompt, setActiveParameterizedPrompt] =
 		useState<IStarterPrompt | null>(null);
 
@@ -115,7 +121,9 @@ export const useAIAssistant = ({
 		let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
 		const fetchAll = (isRetry = false) => {
-			const agentsPromise = service.getAgentNames().catch(() => ({ data: [] as string[] }));
+			const agentsPromise = service
+				.getAgentNames()
+				.catch(() => ({ data: [] as string[] }));
 			const settingsPromise = Promise.all([
 				service.getUserSettings().catch(() => ({ data: undefined })),
 				service.getGlobalSettings().catch(() => ({ data: undefined })),
@@ -128,7 +136,9 @@ export const useAIAssistant = ({
 
 					if (allAgents.length === 0) {
 						if (!isRetry) {
-							retryTimer = setTimeout(() => { if (!cancelled) fetchAll(true); }, 1500);
+							retryTimer = setTimeout(() => {
+								if (!cancelled) fetchAll(true);
+							}, 1500);
 							return;
 						}
 						allAgents = [DEFAULT_AGENT];
@@ -154,20 +164,27 @@ export const useAIAssistant = ({
 						globalAgents && globalAgents.length > 0
 							? allAgents.filter((a) => globalAgents.includes(a))
 							: allAgents;
-					const effectiveAgents = filteredAgents.length > 0 ? filteredAgents : allAgents;
+					const effectiveAgents =
+						filteredAgents.length > 0 ? filteredAgents : allAgents;
 					setAgentNames(effectiveAgents);
 
 					if (effectiveAgents.length > 0) {
-						service.getStarterPrompts(effectiveAgents).then((promptResult) => {
-							if (!cancelled && promptResult.data) {
-								const sorted = [...promptResult.data].sort(
-									(a, b) => (a.order ?? 0) - (b.order ?? 0),
-								);
-								setStarterPrompts(sorted);
-							}
-						}).catch(() => { /* starter prompts unavailable */ }).finally(() => {
-							if (!cancelled) setStarterPromptsLoading(false);
-						});
+						service
+							.getStarterPrompts(effectiveAgents)
+							.then((promptResult) => {
+								if (!cancelled && promptResult.data) {
+									const sorted = [...promptResult.data].sort(
+										(a, b) => (a.order ?? 0) - (b.order ?? 0),
+									);
+									setStarterPrompts(sorted);
+								}
+							})
+							.catch(() => {
+								/* starter prompts unavailable */
+							})
+							.finally(() => {
+								if (!cancelled) setStarterPromptsLoading(false);
+							});
 					} else {
 						setStarterPromptsLoading(false);
 					}
@@ -176,7 +193,10 @@ export const useAIAssistant = ({
 		};
 
 		fetchAll();
-		return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
+		return () => {
+			cancelled = true;
+			if (retryTimer) clearTimeout(retryTimer);
+		};
 	}, [service]);
 
 	const updateSettings = useCallback(
@@ -195,7 +215,8 @@ export const useAIAssistant = ({
 
 			const va = global.visibleAgents;
 			const all = allAgentNamesRef.current;
-			const filtered = va && va.length > 0 ? all.filter((a) => va.includes(a)) : all;
+			const filtered =
+				va && va.length > 0 ? all.filter((a) => va.includes(a)) : all;
 			setAgentNames(filtered.length > 0 ? filtered : all);
 		},
 		[],
@@ -219,15 +240,49 @@ export const useAIAssistant = ({
 
 	const refreshStarterPrompts = useCallback(() => {
 		if (!service || agentNames.length === 0) return;
-		service.getStarterPrompts(agentNames).then((result) => {
-			if (result.data) {
-				const sorted = [...result.data].sort(
-					(a, b) => (a.order ?? 0) - (b.order ?? 0),
-				);
-				setStarterPrompts(sorted);
-			}
-		}).catch(() => { /* ignore */ });
+		service
+			.getStarterPrompts(agentNames)
+			.then((result) => {
+				if (result.data) {
+					const sorted = [...result.data].sort(
+						(a, b) => (a.order ?? 0) - (b.order ?? 0),
+					);
+					setStarterPrompts(sorted);
+				}
+			})
+			.catch(() => {
+				/* ignore */
+			});
 	}, [service, agentNames]);
+
+	const filteredStarterPrompts = useMemo(() => {
+		if (!context) return starterPrompts;
+		const { page, url, tags: contextTags, ...rest } = context;
+		const keywords: string[] = [];
+		if (page) keywords.push(page.toLowerCase());
+		if (url) keywords.push(url.toLowerCase());
+		if (contextTags) {
+			for (const t of contextTags) keywords.push(t.toLowerCase());
+		}
+		for (const v of Object.values(rest)) {
+			if (typeof v === "string" && v.trim()) keywords.push(v.toLowerCase());
+		}
+		if (keywords.length === 0) return starterPrompts;
+
+		return starterPrompts.filter((p) => {
+			const promptTags = (p.tags ?? []).map((t) => t.toLowerCase());
+			const title = p.title.toLowerCase();
+			const desc = (p.description ?? "").toLowerCase();
+			const name = (p.agentName ?? "").toLowerCase();
+			return keywords.some(
+				(kw) =>
+					promptTags.some((t) => t.includes(kw) || kw.includes(t)) ||
+					title.includes(kw) ||
+					desc.includes(kw) ||
+					name.includes(kw),
+			);
+		});
+	}, [starterPrompts, context]);
 
 	const contextValue: IAIAssistantContextValue = useMemo(
 		() => ({
@@ -243,7 +298,7 @@ export const useAIAssistant = ({
 			service,
 			permissions,
 			agentNames,
-			starterPrompts,
+			starterPrompts: filteredStarterPrompts,
 			starterPromptsLoading,
 			refreshStarterPrompts,
 			theme,
@@ -263,7 +318,7 @@ export const useAIAssistant = ({
 			service,
 			permissions,
 			agentNames,
-			starterPrompts,
+			filteredStarterPrompts,
 			starterPromptsLoading,
 			refreshStarterPrompts,
 			theme,

@@ -1,15 +1,16 @@
 import {
+	type KeyboardEvent as ReactKeyboardEvent,
 	useCallback,
 	useEffect,
+	useRef,
 	useState,
-	type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import type { IStarterPrompt } from "../../AIAssistant.types";
 import {
 	extractParameters,
-	normalizeList,
-	initialFormState,
 	type IStarterPromptFormState,
+	initialFormState,
+	normalizeList,
 } from "./StarterPrompts.models";
 
 export const useStarterPromptForm = (
@@ -22,6 +23,8 @@ export const useStarterPromptForm = (
 	);
 	const [paramInput, setParamInput] = useState("");
 	const [tagInput, setTagInput] = useState("");
+	const formRef = useRef(form);
+	formRef.current = form;
 
 	useEffect(() => {
 		if (target) {
@@ -56,20 +59,19 @@ export const useStarterPromptForm = (
 		form.title.trim() && form.prompt.trim() && form.agentName.trim();
 
 	const updateField = (field: keyof IStarterPromptFormState, value: string) =>
-		setForm((prev) => ({
-			...prev,
-			[field]: field === "order" ? (Number.parseInt(value, 10) || 0) : value,
-		}));
+		setForm((prev) => {
+			if (field === "order") {
+				const n = Number.parseInt(value, 10);
+				return { ...prev, order: Number.isNaN(n) ? prev.order : n };
+			}
+			return { ...prev, [field]: value };
+		});
 
 	const handlePromptChange = (value: string) => {
 		const detected = extractParameters(value);
 		setForm((prev) => {
-			const detectedBases = detected.map((p) =>
-				p.replace(/\?$/, ""),
-			);
-			const detectedSet = new Set(
-				detectedBases.map((b) => b.toLowerCase()),
-			);
+			const detectedBases = detected.map((p) => p.replace(/\?$/, ""));
+			const detectedSet = new Set(detectedBases.map((b) => b.toLowerCase()));
 			// Keep manually-added params that are NOT in the prompt text
 			const manual = prev.parameters.filter(
 				(p) => !detectedSet.has(p.toLowerCase()),
@@ -136,28 +138,34 @@ export const useStarterPromptForm = (
 		};
 
 	const handleSubmit = useCallback(async () => {
-		if (!isValid) return;
+		const current = formRef.current;
+		if (
+			!current.title.trim() ||
+			!current.prompt.trim() ||
+			!current.agentName.trim()
+		)
+			return;
 		// Extract params from prompt text (preserves ? suffix for optionality)
-		const fromPrompt = extractParameters(form.prompt);
+		const fromPrompt = extractParameters(current.prompt);
 		const fromPromptBases = new Set(
 			fromPrompt.map((p) => p.replace(/\?$/, "").toLowerCase()),
 		);
 		// Keep manually-added params not present in the prompt text
-		const manual = form.parameters.filter(
+		const manual = current.parameters.filter(
 			(p) => !fromPromptBases.has(p.toLowerCase()),
 		);
 		const allParams = normalizeList([...fromPrompt, ...manual]);
 		await onSave({
 			...target,
-			title: form.title.trim(),
-			agentName: form.agentName.trim(),
-			prompt: form.prompt.trim(),
-			description: form.prompt.trim(),
+			title: current.title.trim(),
+			agentName: current.agentName.trim(),
+			prompt: current.prompt.trim(),
+			description: current.prompt.trim(),
 			parameters: allParams.length > 0 ? allParams : null,
-			tags: form.tags.length > 0 ? form.tags : null,
-			order: form.order,
+			tags: current.tags.length > 0 ? current.tags : null,
+			order: current.order,
 		});
-	}, [form, target, isValid, onSave]);
+	}, [target, onSave]);
 
 	return {
 		form,
