@@ -1,6 +1,7 @@
 import { mergeClasses } from "@fluentui/react-components";
 import { Search12Regular } from "@fluentui/react-icons";
 import { useSidebarChatHistoryStyles } from "./SidebarChatHistory.styles";
+import { Shimmer } from "../../common/shimmer";
 import {
 	useConversationHistory,
 	getTimeAgo,
@@ -34,7 +35,7 @@ export const SidebarChatHistory = ({ onSelect, showSelection }: { onSelect: () =
 			</div>
 			<div className={classes.list}>
 				{loading ? (
-					<div className={classes.empty}>Loading…</div>
+					<Shimmer layout="list" rows={3} />
 				) : filtered.length === 0 ? (
 					<div className={classes.empty}>
 						{searchQuery ? "No matches" : "No conversations yet"}

@@ -14,6 +14,7 @@ export interface IStarterPrompt {
 	parameters?: string[] | null;
 	tags?: string[] | null;
 	templates?: string[] | null;
+	order?: number;
 }
 
 export interface ITemplate {

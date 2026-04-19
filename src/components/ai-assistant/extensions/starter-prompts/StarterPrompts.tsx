@@ -9,6 +9,7 @@ import {
 import { defineExtension } from "../types";
 import type { IExtensionProps } from "../types";
 import { PageLayout } from "../shared/page-layout";
+import { Shimmer } from "../../../common/shimmer";
 import { useStarterPromptsStyles } from "./StarterPrompts.styles";
 import { useStarterPrompts } from "./useStarterPrompts";
 import { StarterPromptForm } from "./StarterPromptForm";
@@ -71,11 +72,7 @@ const StarterPromptsPanel = ({ onClose }: IExtensionProps) => {
 
 	const renderContent = () => {
 		if (loading) {
-			return (
-				<div className={classes.emptyState}>
-					<div className={classes.emptyDescription}>Loading…</div>
-				</div>
-			);
+			return <Shimmer layout="list" rows={4} />;
 		}
 		if (error && prompts.length === 0) {
 			return (

@@ -15,6 +15,7 @@ export interface IStarterPromptFormState {
 	prompt: string;
 	parameters: string[];
 	tags: string[];
+	order: number;
 }
 
 export const initialFormState = (
@@ -25,4 +26,5 @@ export const initialFormState = (
 	prompt: "",
 	parameters: [],
 	tags: [],
+	order: 0,
 });

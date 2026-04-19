@@ -6,4 +6,5 @@ export interface IChatInputProps {
 	onAbort: () => void;
 	onFileSelect?: (file: File) => void;
 	starterPrompts?: IStarterPrompt[];
+	onSelectPrompt?: (prompt: IStarterPrompt) => void;
 }

@@ -48,15 +48,18 @@ export const useStarterPrompts = () => {
 	}, [service, contextAgentNames]);
 
 	const filtered = useMemo(() => {
-		if (!searchQuery.trim()) return prompts;
-		const q = searchQuery.toLowerCase();
-		return prompts.filter(
-			(p) =>
-				p.title.toLowerCase().includes(q) ||
-				(p.prompt ?? "").toLowerCase().includes(q) ||
-				(p.agentName ?? "").toLowerCase().includes(q) ||
-				(p.tags ?? []).some((t) => t.toLowerCase().includes(q)),
-		);
+		let list = prompts;
+		if (searchQuery.trim()) {
+			const q = searchQuery.toLowerCase();
+			list = list.filter(
+				(p) =>
+					p.title.toLowerCase().includes(q) ||
+					(p.prompt ?? "").toLowerCase().includes(q) ||
+					(p.agentName ?? "").toLowerCase().includes(q) ||
+					(p.tags ?? []).some((t) => t.toLowerCase().includes(q)),
+			);
+		}
+		return [...list].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 	}, [prompts, searchQuery]);
 
 	const handleSave = useCallback(

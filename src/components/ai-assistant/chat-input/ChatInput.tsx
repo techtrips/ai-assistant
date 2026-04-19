@@ -15,6 +15,7 @@ export const ChatInput = ({
 	onAbort,
 	onFileSelect,
 	starterPrompts,
+	onSelectPrompt,
 }: IChatInputProps) => {
 	const classes = useChatInputStyles();
 	const {
@@ -38,7 +39,7 @@ export const ChatInput = ({
 		handleSelectSuggestion,
 		handleFocus,
 		handleBlur,
-	} = useChatInput(isStreaming, onSend, starterPrompts);
+	} = useChatInput(isStreaming, onSend, starterPrompts, onSelectPrompt);
 
 	return (
 		<div className={classes.composerContainer}>

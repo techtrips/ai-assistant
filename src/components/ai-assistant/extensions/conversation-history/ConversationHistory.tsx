@@ -7,6 +7,7 @@ import { mergeClasses } from "@fluentui/react-components";
 import { defineExtension } from "../types";
 import type { IExtensionProps } from "../types";
 import { PageLayout } from "../shared/page-layout";
+import { Shimmer } from "../../../common/shimmer";
 import { useConversationHistoryStyles } from "./ConversationHistory.styles";
 import { useConversationHistory } from "./useConversationHistory";
 import { getTimeAgo, groupByTime } from "./ConversationHistory.utils";
@@ -56,11 +57,7 @@ const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 
 	const renderContent = () => {
 		if (loading) {
-			return (
-				<div className={classes.emptyState}>
-					<div className={classes.emptyDescription}>Loading…</div>
-				</div>
-			);
+			return <Shimmer layout="list" rows={5} />;
 		}
 		if (error && conversations.length === 0) {
 			return (

@@ -36,6 +36,7 @@ export const useStarterPromptForm = (
 				prompt: target.prompt ?? target.description ?? "",
 				parameters: params,
 				tags: normalizeList(target.tags),
+				order: target.order ?? 0,
 			});
 		} else {
 			setForm(initialFormState(agents));
@@ -46,7 +47,10 @@ export const useStarterPromptForm = (
 		form.title.trim() && form.prompt.trim() && form.agentName.trim();
 
 	const updateField = (field: keyof IStarterPromptFormState, value: string) =>
-		setForm((prev) => ({ ...prev, [field]: value }));
+		setForm((prev) => ({
+			...prev,
+			[field]: field === "order" ? (Number.parseInt(value, 10) || 0) : value,
+		}));
 
 	const handlePromptChange = (value: string) => {
 		const detected = extractParameters(value);
@@ -127,6 +131,7 @@ export const useStarterPromptForm = (
 			description: form.prompt.trim(),
 			parameters: allParams.length > 0 ? allParams : null,
 			tags: form.tags.length > 0 ? form.tags : null,
+			order: form.order,
 		});
 	}, [form, target, isValid, onSave]);
 

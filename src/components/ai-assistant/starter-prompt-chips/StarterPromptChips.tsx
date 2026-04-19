@@ -7,7 +7,7 @@ const VISIBLE_COUNT = 10;
 
 export const StarterPromptChips = () => {
 	const classes = useStarterPromptChipsStyles();
-	const { sendMessage, starterPrompts } = useAIAssistantContext();
+	const { selectPrompt, starterPrompts, starterPromptsLoading } = useAIAssistantContext();
 	const [showOverflow, setShowOverflow] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -31,11 +31,22 @@ export const StarterPromptChips = () => {
 
 	const handleSelect = useCallback(
 		(prompt: IStarterPrompt) => {
-			const message = prompt.prompt ?? prompt.title;
-			sendMessage(message);
+			selectPrompt(prompt);
 		},
-		[sendMessage],
+		[selectPrompt],
 	);
+
+	if (starterPromptsLoading) {
+		return (
+			<div className={classes.root}>
+				<div className={classes.skeletonRow}>
+					<div className={classes.shimmerChip} style={{ width: "100px" }} />
+					<div className={classes.shimmerChip} style={{ width: "120px" }} />
+					<div className={classes.shimmerChip} style={{ width: "90px" }} />
+				</div>
+			</div>
+		);
+	}
 
 	if (starterPrompts.length === 0) return null;
 

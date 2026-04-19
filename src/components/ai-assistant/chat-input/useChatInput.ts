@@ -6,6 +6,7 @@ export const useChatInput = (
 	isStreaming: boolean,
 	onSend: (text: string) => void,
 	starterPrompts?: IStarterPrompt[],
+	onSelectPrompt?: (prompt: IStarterPrompt) => void,
 ) => {
 	const [value, setValue] = useState("");
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -101,11 +102,15 @@ export const useChatInput = (
 	const handleSelectSuggestion = useCallback(
 		(sp: IStarterPrompt) => {
 			setShowSuggestions(false);
-			const message = sp.prompt ?? sp.title;
-			onSend(message);
+			if (onSelectPrompt && sp.parameters && sp.parameters.length > 0) {
+				onSelectPrompt(sp);
+			} else {
+				const message = sp.prompt ?? sp.title;
+				onSend(message);
+			}
 			setValue("");
 		},
-		[onSend],
+		[onSend, onSelectPrompt],
 	);
 
 	const handleFocus = useCallback(() => {

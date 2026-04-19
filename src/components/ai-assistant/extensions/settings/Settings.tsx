@@ -3,6 +3,7 @@ import { Dismiss12Regular, SettingsRegular } from "@fluentui/react-icons";
 import { defineExtension } from "../types";
 import type { IExtensionProps } from "../types";
 import { PageLayout } from "../shared/page-layout";
+import { Shimmer } from "../../../common/shimmer";
 import { useSettingsStyles } from "./Settings.styles";
 import { useSettings } from "./useSettings";
 
@@ -23,7 +24,7 @@ const SettingsPanel = ({ onClose }: IExtensionProps) => {
 	if (loading) {
 		return (
 			<PageLayout title="Settings" onClose={onClose}>
-				<div className={classes.body}>Loading…</div>
+				<Shimmer layout="lines" rows={5} />
 			</PageLayout>
 		);
 	}

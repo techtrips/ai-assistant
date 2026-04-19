@@ -6,6 +6,9 @@ import type { IAIAssistantService } from "./AIAssistant.services";
 
 export interface IAIAssistantContextValue {
 	sendMessage: (text: string) => void;
+	selectPrompt: (prompt: IStarterPrompt) => void;
+	activeParameterizedPrompt: IStarterPrompt | null;
+	dismissParameterizedPrompt: () => void;
 	newChat: () => void;
 	messages: IChatMessage[];
 	setMessages: (messages: IChatMessage[]) => void;
@@ -15,6 +18,7 @@ export interface IAIAssistantContextValue {
 	permissions?: AIAssistantPermission[];
 	agentNames: string[];
 	starterPrompts: IStarterPrompt[];
+	starterPromptsLoading: boolean;
 	theme: "light" | "dark";
 	settings: IAIAssistantSettings;
 	updateSettings: (

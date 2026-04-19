@@ -25,6 +25,7 @@ import { checkPermission } from "./AIAssistant.utils";
 import { useChatState } from "./useChatState";
 import { ChatArea } from "./chat-area";
 import { ChatInput } from "./chat-input";
+import { PromptParameterForm } from "./chat-input/prompt-parameter-form";
 import { StarterPromptChips } from "./starter-prompt-chips";
 import { SidebarChatHistory } from "./sidebar-chat-history";
 import { useResizePanel } from "./useResizePanel";
@@ -90,8 +91,11 @@ export const AIAssistant = ({
 	} = useChatState(adapter);
 
 	const [starterPrompts, setStarterPrompts] = useState<IStarterPrompt[]>([]);
+	const [starterPromptsLoading, setStarterPromptsLoading] = useState(true);
 	const [agentNames, setAgentNames] = useState<string[]>([]);
 	const [settings, setSettings] = useState<IAIAssistantSettings>(DEFAULT_SETTINGS);
+	const [activeParameterizedPrompt, setActiveParameterizedPrompt] =
+		useState<IStarterPrompt | null>(null);
 
 	const isSidePanel = !effectiveFullScreen;
 	const {
@@ -106,58 +110,75 @@ export const AIAssistant = ({
 	useEffect(() => {
 		if (!service) return;
 		let cancelled = false;
+		let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-		const agentsPromise = service.getAgentNames().catch(() => ({ data: [] as string[] }));
-		const settingsPromise = Promise.all([
-			service.getUserSettings().catch(() => ({ data: undefined })),
-			service.getGlobalSettings().catch(() => ({ data: undefined })),
-		]);
+		const fetchAll = (isRetry = false) => {
+			const agentsPromise = service.getAgentNames().catch(() => ({ data: [] as string[] }));
+			const settingsPromise = Promise.all([
+				service.getUserSettings().catch(() => ({ data: undefined })),
+				service.getGlobalSettings().catch(() => ({ data: undefined })),
+			]);
 
-		Promise.all([agentsPromise, settingsPromise]).then(
-			([agentsResult, [userResult, globalResult]]) => {
-				if (cancelled) return;
+			Promise.all([agentsPromise, settingsPromise]).then(
+				([agentsResult, [userResult, globalResult]]) => {
+					if (cancelled) return;
+					let allAgents = agentsResult.data ?? [];
 
-				// Fallback to DEFAULT_AGENT if API fails or returns empty
-				const allAgents = agentsResult.data && agentsResult.data.length > 0
-					? agentsResult.data
-					: [DEFAULT_AGENT];
-				allAgentNamesRef.current = allAgents;
-
-				// Merge settings
-				const merged = {
-					...DEFAULT_SETTINGS,
-					...(globalResult.data ?? {}),
-					...(userResult.data ?? {}),
-				};
-				if (globalResult.data?.enableTemplateResolution === false) {
-					merged.enableTemplateResolution = false;
-				}
-				if (globalResult.data?.enableDynamicUi === false) {
-					merged.enableDynamicUi = false;
-				}
-				setSettings(merged);
-
-				// Filter agent names by global visible agents (empty visibleAgents = show all)
-				const globalAgents = globalResult.data?.visibleAgents;
-				const filteredAgents =
-					globalAgents && globalAgents.length > 0
-						? allAgents.filter((a) => globalAgents.includes(a))
-						: allAgents;
-				const effectiveAgents = filteredAgents.length > 0 ? filteredAgents : allAgents;
-				setAgentNames(effectiveAgents);
-
-				// Fetch starter prompts
-				if (effectiveAgents.length > 0) {
-					service.getStarterPrompts(effectiveAgents).then((promptResult) => {
-						if (!cancelled && promptResult.data) {
-							setStarterPrompts(promptResult.data);
+					// If agents are empty: retry once (token may not be ready), then fall back
+					if (allAgents.length === 0) {
+						if (!isRetry) {
+							retryTimer = setTimeout(() => { if (!cancelled) fetchAll(true); }, 1500);
+							return;
 						}
-					}).catch(() => { /* starter prompts unavailable */ });
-				}
-			},
-		);
+						allAgents = [DEFAULT_AGENT];
+					}
 
-		return () => { cancelled = true; };
+					allAgentNamesRef.current = allAgents;
+
+					// Merge settings
+					const merged = {
+						...DEFAULT_SETTINGS,
+						...(globalResult.data ?? {}),
+						...(userResult.data ?? {}),
+					};
+					if (globalResult.data?.enableTemplateResolution === false) {
+						merged.enableTemplateResolution = false;
+					}
+					if (globalResult.data?.enableDynamicUi === false) {
+						merged.enableDynamicUi = false;
+					}
+					setSettings(merged);
+
+					// Filter agent names by global visible agents (empty visibleAgents = show all)
+					const globalAgents = globalResult.data?.visibleAgents;
+					const filteredAgents =
+						globalAgents && globalAgents.length > 0
+							? allAgents.filter((a) => globalAgents.includes(a))
+							: allAgents;
+					const effectiveAgents = filteredAgents.length > 0 ? filteredAgents : allAgents;
+					setAgentNames(effectiveAgents);
+
+					// Fetch starter prompts
+					if (effectiveAgents.length > 0) {
+						service.getStarterPrompts(effectiveAgents).then((promptResult) => {
+							if (!cancelled && promptResult.data) {
+								const sorted = [...promptResult.data].sort(
+									(a, b) => (a.order ?? 0) - (b.order ?? 0),
+								);
+								setStarterPrompts(sorted);
+							}
+						}).catch(() => { /* starter prompts unavailable */ }).finally(() => {
+							if (!cancelled) setStarterPromptsLoading(false);
+						});
+					} else {
+						setStarterPromptsLoading(false);
+					}
+				},
+			);
+		};
+
+		fetchAll();
+		return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
 	}, [service]);
 
 	const updateSettings = useCallback(
@@ -183,9 +204,28 @@ export const AIAssistant = ({
 		[],
 	);
 
+	const selectPrompt = useCallback(
+		(prompt: IStarterPrompt) => {
+			const params = prompt.parameters;
+			if (params && params.length > 0) {
+				setActiveParameterizedPrompt(prompt);
+			} else {
+				sendMessage(prompt.prompt ?? prompt.title);
+			}
+		},
+		[sendMessage],
+	);
+
+	const dismissParameterizedPrompt = useCallback(() => {
+		setActiveParameterizedPrompt(null);
+	}, []);
+
 	const contextValue = useMemo(
 		() => ({
 			sendMessage,
+			selectPrompt,
+			activeParameterizedPrompt,
+			dismissParameterizedPrompt,
 			newChat,
 			messages,
 			setMessages,
@@ -195,12 +235,16 @@ export const AIAssistant = ({
 			permissions,
 			agentNames,
 			starterPrompts,
+			starterPromptsLoading,
 			theme,
 			settings,
 			updateSettings,
 		}),
 		[
 			sendMessage,
+			selectPrompt,
+			activeParameterizedPrompt,
+			dismissParameterizedPrompt,
 			newChat,
 			messages,
 			setMessages,
@@ -210,6 +254,7 @@ export const AIAssistant = ({
 			permissions,
 			agentNames,
 			starterPrompts,
+			starterPromptsLoading,
 			theme,
 			settings,
 			updateSettings,
@@ -263,6 +308,14 @@ export const AIAssistant = ({
 		setActiveView((prev) => (prev === key ? CHAT_VIEW : key));
 	}, []);
 
+	const handleParameterFormSubmit = useCallback(
+		(resolvedPrompt: string) => {
+			setActiveParameterizedPrompt(null);
+			sendMessage(resolvedPrompt);
+		},
+		[sendMessage],
+	);
+
 	const handleBackToChat = useCallback(() => {
 		setActiveView(CHAT_VIEW);
 	}, []);
@@ -306,11 +359,19 @@ export const AIAssistant = ({
 						streamingText={streamingText}
 						renderMessage={renderMessage}
 					/>
+					{activeParameterizedPrompt && (
+						<PromptParameterForm
+							prompt={activeParameterizedPrompt}
+							onSubmit={handleParameterFormSubmit}
+							onCancel={dismissParameterizedPrompt}
+						/>
+					)}
 					<ChatInput
 						isStreaming={isStreaming}
 						onSend={sendMessage}
 						onAbort={abort}
 						starterPrompts={starterPrompts}
+						onSelectPrompt={selectPrompt}
 					/>
 				</>
 			);
@@ -337,11 +398,19 @@ export const AIAssistant = ({
 							effectiveFullScreen && classes.welcomeComposerFullScreen,
 						)}
 					>
+						{activeParameterizedPrompt && (
+							<PromptParameterForm
+								prompt={activeParameterizedPrompt}
+								onSubmit={handleParameterFormSubmit}
+								onCancel={dismissParameterizedPrompt}
+							/>
+						)}
 						<ChatInput
 							isStreaming={isStreaming}
 							onSend={sendMessage}
 							onAbort={abort}
 							starterPrompts={starterPrompts}
+							onSelectPrompt={selectPrompt}
 						/>
 						<StarterPromptChips />
 					</div>

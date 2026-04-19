@@ -4,6 +4,7 @@ import {
 	Chat20Regular,
 	Dismiss12Regular,
 	LightbulbRegular,
+	NumberSymbol20Regular,
 	Tag20Regular,
 	TextDescription20Regular,
 } from "@fluentui/react-icons";
@@ -180,6 +181,19 @@ export const StarterPromptForm = ({
 					removeTag,
 					"Type a tag and press Enter",
 				),
+			)}
+			{renderField(
+				<NumberSymbol20Regular />,
+				"Order",
+				"Lower numbers appear first in the chips list",
+				<input
+					className={classes.input}
+					type="number"
+					min={0}
+					placeholder="0"
+					value={form.order}
+					onChange={(e) => updateField("order", e.target.value)}
+				/>,
 			)}
 		</SlidePanel>
 	);

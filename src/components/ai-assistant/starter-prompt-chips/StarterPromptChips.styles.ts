@@ -5,6 +5,11 @@ const shimmer = {
 	"100%": { backgroundPosition: "-200% 0" },
 };
 
+const fadeIn = {
+	from: { opacity: 0, transform: "translateY(4px)" },
+	to: { opacity: 1, transform: "translateY(0)" },
+};
+
 export const useStarterPromptChipsStyles = makeStyles({
 	root: {
 		width: "100%",
@@ -15,6 +20,10 @@ export const useStarterPromptChipsStyles = makeStyles({
 		...shorthands.gap("8px"),
 		...shorthands.padding("2px", "8px", "0"),
 		boxSizing: "border-box",
+		animationName: fadeIn,
+		animationDuration: "0.25s",
+		animationTimingFunction: "ease-out",
+		animationFillMode: "both",
 	},
 	chip: {
 		...shorthands.padding("9px", "14px"),
@@ -90,13 +99,13 @@ export const useStarterPromptChipsStyles = makeStyles({
 	shimmerChip: {
 		height: "36px",
 		...shorthands.borderRadius("8px"),
-		backgroundColor: "#e8e8e8",
+		backgroundColor: "rgba(0, 0, 0, 0.04)",
 		backgroundImage:
-			"linear-gradient(90deg, #e8e8e8 0%, #f5f5f5 40%, #e8e8e8 80%)",
+			"linear-gradient(90deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.02) 40%, rgba(0,0,0,0.04) 80%)",
 		backgroundSize: "200% 100%",
 		animationName: shimmer,
-		animationDuration: "1.8s",
-		animationTimingFunction: "linear",
+		animationDuration: "2s",
+		animationTimingFunction: "ease-in-out",
 		animationIterationCount: "infinite",
 	},
 });
