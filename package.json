@@ -2,7 +2,7 @@
 	"name": "@techtrips/ai-assistant",
 	"module": "lib/index.js",
 	"types": "lib/index.d.ts",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"scripts": {
 		"clean": "rimraf lib",
 		"build": "npm run clean && tsc -p tsconfig.prod.json",
@@ -42,15 +42,15 @@
 		"url": "git+https://github.com/techtrips/ai-assistant.git"
 	},
 	"keywords": [
-		"ai-assistant",		
+		"ai-assistant",
 		"aiassistant",
 		"ai-assistant-react",
 		"chatbot",
 		"ai-chatbot",
 		"react-chatbot",
-		"react-ai-assistant",		
+		"react-ai-assistant",
 		"ai-assistant-component-library",
-		"react-ai-assistant-component-library",		
+		"react-ai-assistant-component-library",
 		"react-ai-chatbot",
 		"ai-chatbot-react",
 		"agent-ui",
@@ -73,7 +73,7 @@
 		"agent-framework-ui",
 		"react-agent-framework-ui",
 		"conversational-ui",
-		"react-conversational-ui",		
+		"react-conversational-ui",
 		"agentui",
 		"agentui-react",
 		"agentui-library",
@@ -84,7 +84,7 @@
 		"react-agentui-controls",
 		"agentui-react-controls",
 		"ai",
-		"assistant"			
+		"assistant"
 	],
 	"license": "MIT",
 	"author": "techtrips",

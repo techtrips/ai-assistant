@@ -8,10 +8,27 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [0.1.3](#013--2026-04-19) | 2026-04-19 | - |
 | [0.1.2](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+
+## [0.1.3] — 2026-04-19
+
+### Added
+
+- _Update this section before publishing_
+
+### Changed
+
+- _Update this section before publishing_
+
+### Fixed
+
+- _Update this section before publishing_
 
 ---
 

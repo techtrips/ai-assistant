@@ -1,6 +1,6 @@
 # @techtrips/ai-assistant
 
-[![version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/docs/ChangeLog.md)
+[![version](https://img.shields.io/badge/version-0.1.3-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/docs/ChangeLog.md)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/LICENSE)
 
 A React component library for building agent-based AI assistants. Provides a production-ready, adapter-driven conversational UI with streaming support, an extension system, and template rendering — all built on [Fluent UI](https://react.fluentui.dev/) and the [AG-UI protocol](https://github.com/ag-ui-protocol).
