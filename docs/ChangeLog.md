@@ -1,6 +1,6 @@
 # Release Notes
 
-All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.1/) and the project uses [Semantic Versioning](https://semver.org/).
+All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.2/) and the project uses [Semantic Versioning](https://semver.org/).
 
 ---
 
@@ -8,13 +8,14 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [0.1.2](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
 
 ---
 
-## [0.1.1] — 2026-04-19
+## [0.1.2] — 2026-04-19
 
 ### Added
 
@@ -34,6 +35,13 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 - **`RawDataFallback`** inline styles replaced with `makeStyles` (`rawDataLabel`, `rawDataPre`).
 - **Starter prompt form** — removed info icon tooltip from Prompt field; parameter syntax guidance moved to the field description.
 - **Documentation updated** — `AGENTS.md`, `docs/AIAssistant.md`, and `.github/copilot-instructions.md` refreshed to reflect current architecture, props, extensions, theming, and conventions.
+
+---
+
+## [0.1.1] — 2026-04-19
+
+### Added
+- Documentation fix
 
 ---
 
