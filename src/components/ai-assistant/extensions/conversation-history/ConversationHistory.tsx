@@ -3,12 +3,13 @@ import {
 	ChatRegular,
 	Search20Regular,
 } from "@fluentui/react-icons";
+import { mergeClasses } from "@fluentui/react-components";
 import { defineExtension } from "../types";
 import type { IExtensionProps } from "../types";
 import { PageLayout } from "../shared/page-layout";
 import { useConversationHistoryStyles } from "./ConversationHistory.styles";
 import { useConversationHistory } from "./useConversationHistory";
-import { getTimeAgo } from "./ConversationHistory.utils";
+import { getTimeAgo, groupByTime } from "./ConversationHistory.utils";
 
 const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 	const classes = useConversationHistoryStyles();
@@ -22,6 +23,7 @@ const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 		setSearchQuery,
 		handleSelect,
 		handleNewChat,
+		activeThreadId,
 	} = useConversationHistory();
 
 	if (!service) {
@@ -90,22 +92,28 @@ const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 		}
 		return (
 			<div className={classes.list}>
-				{filtered.map((c) => (
-					<button
-						key={c.id}
-						className={classes.card}
-						type="button"
-						onClick={() => handleSelect(c, onClose)}
-					>
-						<div className={classes.cardContent}>
-							<div className={classes.cardTitleRow}>
-								<span className={classes.cardTitle}>{c.firstMessageText}</span>
-								<span className={classes.cardTime}>
-									{getTimeAgo(c.lastActivityAt)}
-								</span>
-							</div>
-						</div>
-					</button>
+				{groupByTime(filtered, (c) => c.lastActivityAt).map((group) => (
+					<div key={group.label} className={classes.group}>
+						<div className={classes.groupLabel}>{group.label}</div>
+						{group.items.map((c) => {
+							const isActive = c.threadId === activeThreadId;
+							return (
+								<button
+									key={c.id}
+									className={mergeClasses(classes.card, isActive && classes.cardActive)}
+									type="button"
+									onClick={() => handleSelect(c, onClose)}
+								>
+									<div className={classes.cardRow}>
+										<span className={classes.cardTitle}>{c.firstMessageText}</span>
+										<span className={classes.cardTime}>
+											{getTimeAgo(c.lastActivityAt)}
+										</span>
+									</div>
+								</button>
+							);
+						})}
+					</div>
 				))}
 			</div>
 		);

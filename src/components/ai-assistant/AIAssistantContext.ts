@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 import type { IChatMessage } from "./AIAssistant.types";
-import type { AIAssistantPermission } from "./AIAssistant.types";
+import type { AIAssistantPermission, IAIAssistantSettings } from "./AIAssistant.types";
 import type { IStarterPrompt } from "./AIAssistant.types";
 import type { IAIAssistantService } from "./AIAssistant.services";
 
@@ -16,6 +16,11 @@ export interface IAIAssistantContextValue {
 	agentNames: string[];
 	starterPrompts: IStarterPrompt[];
 	theme: "light" | "dark";
+	settings: IAIAssistantSettings;
+	updateSettings: (
+		user: Partial<IAIAssistantSettings>,
+		global: Partial<IAIAssistantSettings>,
+	) => void;
 }
 
 export const AIAssistantContext = createContext<

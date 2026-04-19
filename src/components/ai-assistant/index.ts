@@ -18,9 +18,12 @@ export type {
 export { ConversationHistory } from "./extensions/conversation-history";
 export { StarterPrompts } from "./extensions/starter-prompts";
 export { TemplateRenderer } from "./extensions/template-renderer";
+export { Settings } from "./extensions/settings";
 export { useAIAssistantContext } from "./AIAssistantContext";
 export type { IAIAssistantContextValue as AIAssistantContextValue } from "./AIAssistantContext";
 export { AIAssistantService } from "./AIAssistant.services";
 export type { IAIAssistantService } from "./AIAssistant.services";
 export { AIAssistantPermission } from "./AIAssistant.types";
+export { DEFAULT_SETTINGS } from "./AIAssistant.types";
+export type { IAIAssistantSettings } from "./AIAssistant.types";
 export { checkPermission } from "./AIAssistant.utils";

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { IAIAssistantService } from "../../AIAssistant.services";
-import type { IChatMessage } from "../../AIAssistant.types";
+import type { IAIAssistantSettings, IChatMessage } from "../../AIAssistant.types";
 import {
 	getResolvedFromCache,
 	needsResolution,
@@ -16,6 +16,7 @@ export const useResolveMessage = (
 	message: IChatMessage,
 	service: IAIAssistantService | undefined,
 	theme?: "light" | "dark",
+	settings?: IAIAssistantSettings,
 ): IUseResolveMessageResult => {
 	const skip = !needsResolution(message) || !service;
 
@@ -47,7 +48,7 @@ export const useResolveMessage = (
 		const svc = serviceRef.current!;
 		let disposed = false;
 
-		resolveMessage(message, svc, undefined, theme)
+		resolveMessage(message, svc, undefined, theme, settings)
 			.then((html) => {
 				if (!disposed) setResult({ html });
 			})

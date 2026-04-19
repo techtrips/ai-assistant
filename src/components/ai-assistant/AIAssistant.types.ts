@@ -45,7 +45,28 @@ export enum AIAssistantPermission {
 	View = "view",
 	ManageTemplates = "manage_templates",
 	ManageStarterPrompts = "manage_starter_prompts",
+	ManageSettings = "manage_settings",
 }
+
+/* ── Settings ── */
+
+export interface IAIAssistantSettings {
+	/** Disable template resolution (saves LLM cost). Applies globally when set by admin. */
+	enableTemplateResolution: boolean;
+	/** Disable dynamic UI generation via LLM. Applies globally when set by admin. */
+	enableDynamicUi: boolean;
+	/** Show agent activity (developer mode). User-level setting. */
+	showAgentActivity: boolean;
+	/** Agents visible to all users. Empty = all agents. Global setting. */
+	visibleAgents: string[];
+}
+
+export const DEFAULT_SETTINGS: IAIAssistantSettings = {
+	enableTemplateResolution: true,
+	enableDynamicUi: true,
+	showAgentActivity: false,
+	visibleAgents: [],
+};
 
 export interface IChatMessage {
 	id: string;

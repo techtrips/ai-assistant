@@ -119,7 +119,7 @@ export const StarterPromptForm = ({
 				"Short label displayed on the starter prompt chip",
 				<input
 					className={classes.input}
-					placeholder="Search Credits by Agreement"
+					placeholder="Prompt Title"
 					value={form.title}
 					onChange={(e) => updateField("title", e.target.value)}
 				/>,
@@ -128,26 +128,20 @@ export const StarterPromptForm = ({
 				<Bot20Regular />,
 				"Agent Name",
 				"The agent this prompt is associated with",
-				agents.length > 0 ? (
-					<select
-						className={classes.select}
-						value={form.agentName}
-						onChange={(e) => updateField("agentName", e.target.value)}
-					>
-						{agents.map((a) => (
-							<option key={a} value={a}>
-								{a}
-							</option>
-						))}
-					</select>
-				) : (
-					<input
-						className={classes.input}
-						placeholder="Enter agent name"
-						value={form.agentName}
-						onChange={(e) => updateField("agentName", e.target.value)}
-					/>
-				),
+				<select
+					className={classes.select}
+					value={form.agentName}
+					onChange={(e) => updateField("agentName", e.target.value)}
+				>
+					<option value="" disabled>
+						Select an agent
+					</option>
+					{agents.map((a) => (
+						<option key={a} value={a}>
+							{a}
+						</option>
+					))}
+				</select>,
 			)}
 			{renderField(
 				<Chat20Regular />,

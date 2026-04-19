@@ -1,4 +1,5 @@
 import type {
+	IAIAssistantSettings,
 	IChatMessage,
 	IConversation,
 	IStarterPrompt,
@@ -51,10 +52,26 @@ export interface IConversationService {
 	) => Promise<string | undefined>;
 }
 
+export interface ISettingsService {
+	/** Get user-level settings */
+	getUserSettings: () => Promise<IEntity<Partial<IAIAssistantSettings>>>;
+	/** Save user-level settings */
+	saveUserSettings: (
+		settings: Partial<IAIAssistantSettings>,
+	) => Promise<IEntity<Partial<IAIAssistantSettings>>>;
+	/** Get global settings (admin-level, applies to all users) */
+	getGlobalSettings: () => Promise<IEntity<Partial<IAIAssistantSettings>>>;
+	/** Save global settings (admin only) */
+	saveGlobalSettings: (
+		settings: Partial<IAIAssistantSettings>,
+	) => Promise<IEntity<Partial<IAIAssistantSettings>>>;
+}
+
 export interface IAIAssistantService
 	extends IStarterPromptService,
 		ITemplateService,
-		IConversationService {}
+		IConversationService,
+		ISettingsService {}
 
 export interface ICreateServiceOptions {
 	baseUrl: string;
@@ -271,6 +288,23 @@ export class AIAssistantService implements IAIAssistantService {
 			});
 		}
 
+		// Flush any remaining tool calls that weren't attached to a text message
+		if (pendingToolCalls.size > 0) {
+			const allToolCalls = [...pendingToolCalls.values()];
+			const templateId = allToolCalls.find((tc) => tc.name)?.name;
+			messages.push({
+				id: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+				role: "assistant",
+				content: "",
+				timestamp: new Date().toISOString(),
+				data: {
+					toolCalls: allToolCalls,
+					...(templateId ? { templateId } : {}),
+				},
+			});
+			pendingToolCalls.clear();
+		}
+
 		return { data: messages };
 	}
 
@@ -361,5 +395,27 @@ export class AIAssistantService implements IAIAssistantService {
 		} catch {
 			return null;
 		}
+	}
+
+	/* ── Settings ── */
+
+	getUserSettings(): Promise<IEntity<Partial<IAIAssistantSettings>>> {
+		return this.fetchApi("/settings/user", "GET");
+	}
+
+	saveUserSettings(
+		settings: Partial<IAIAssistantSettings>,
+	): Promise<IEntity<Partial<IAIAssistantSettings>>> {
+		return this.fetchApi("/settings/user", "PUT", settings);
+	}
+
+	getGlobalSettings(): Promise<IEntity<Partial<IAIAssistantSettings>>> {
+		return this.fetchApi("/settings/global", "GET");
+	}
+
+	saveGlobalSettings(
+		settings: Partial<IAIAssistantSettings>,
+	): Promise<IEntity<Partial<IAIAssistantSettings>>> {
+		return this.fetchApi("/settings/global", "PUT", settings);
 	}
 }

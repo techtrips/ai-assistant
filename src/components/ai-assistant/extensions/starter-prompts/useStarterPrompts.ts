@@ -36,7 +36,7 @@ export const useStarterPrompts = () => {
 	}, [prompts, contextAgentNames]);
 
 	useEffect(() => {
-		if (!service) {
+		if (!service || contextAgentNames.length === 0) {
 			setLoading(false);
 			return;
 		}
@@ -45,7 +45,7 @@ export const useStarterPrompts = () => {
 			if (result.error) setError(result.error);
 			setLoading(false);
 		});
-	}, [service]);
+	}, [service, contextAgentNames]);
 
 	const filtered = useMemo(() => {
 		if (!searchQuery.trim()) return prompts;

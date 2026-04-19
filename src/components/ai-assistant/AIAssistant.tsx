@@ -2,6 +2,7 @@ import {
 	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 	useSyncExternalStore,
 	type CSSProperties,
@@ -18,7 +19,8 @@ import {
 import type { IAIAssistantProps } from "./AIAssistant.types";
 import { AIAssistantContext } from "./AIAssistantContext";
 import { useAIAssistantStyles } from "./AIAssistant.styles";
-import { AIAssistantPermission } from "./AIAssistant.types";
+import { AIAssistantPermission, DEFAULT_SETTINGS } from "./AIAssistant.types";
+import type { IAIAssistantSettings } from "./AIAssistant.types";
 import { checkPermission } from "./AIAssistant.utils";
 import { useChatState } from "./useChatState";
 import { ChatArea } from "./chat-area";
@@ -27,11 +29,23 @@ import { StarterPromptChips } from "./starter-prompt-chips";
 import { SidebarChatHistory } from "./sidebar-chat-history";
 import { useResizePanel } from "./useResizePanel";
 import type { IStarterPrompt } from "./AIAssistant.types";
+import { ConversationHistory } from "./extensions/conversation-history";
+import { StarterPrompts } from "./extensions/starter-prompts";
+import { TemplateRenderer } from "./extensions/template-renderer";
+import { Settings } from "./extensions/settings";
+import type { AIAssistantExtension } from "./extensions/types";
 
 const EXTENSION_PERMISSIONS: Record<string, AIAssistantPermission> = {
 	prompts: AIAssistantPermission.ManageStarterPrompts,
 	templates: AIAssistantPermission.ManageTemplates,
 };
+
+const DEFAULT_EXTENSIONS: AIAssistantExtension[] = [
+	ConversationHistory,
+	StarterPrompts,
+	TemplateRenderer,
+	Settings,
+];
 
 const CHAT_VIEW = "__chat__";
 const MOBILE_QUERY = "(max-width: 768px)";
@@ -76,6 +90,7 @@ export const AIAssistant = ({
 
 	const [starterPrompts, setStarterPrompts] = useState<IStarterPrompt[]>([]);
 	const [agentNames, setAgentNames] = useState<string[]>([]);
+	const [settings, setSettings] = useState<IAIAssistantSettings>(DEFAULT_SETTINGS);
 
 	const isSidePanel = !effectiveFullScreen;
 	const {
@@ -84,17 +99,81 @@ export const AIAssistant = ({
 		onResizeStart,
 	} = useResizePanel(isSidePanel);
 
+	// Keep a ref of all agent names (unfiltered) for re-filtering
+	const allAgentNamesRef = useRef<string[]>([]);
+
 	useEffect(() => {
 		if (!service) return;
-		service.getAgentNames().then((result) => {
-			if (result.data) {
-				setAgentNames(result.data);
-				service.getStarterPrompts(result.data).then((promptResult) => {
-					if (promptResult.data) setStarterPrompts(promptResult.data);
-				});
-			}
-		});
+
+		// Fetch agents, settings, and starter prompts in parallel
+		const agentsPromise = service.getAgentNames().catch(() => ({ data: undefined }));
+		const settingsPromise = Promise.all([
+			service.getUserSettings().catch(() => ({ data: undefined })),
+			service.getGlobalSettings().catch(() => ({ data: undefined })),
+		]);
+
+		// Wait for both agents and settings, then apply filtering
+		Promise.all([agentsPromise, settingsPromise]).then(
+			([agentsResult, [userResult, globalResult]]) => {
+				const allAgents = agentsResult.data ?? [];
+				allAgentNamesRef.current = allAgents;
+
+				// Merge settings — fallback to DEFAULT_SETTINGS on failure
+				const merged = {
+					...DEFAULT_SETTINGS,
+					...(globalResult.data ?? {}),
+					...(userResult.data ?? {}),
+				};
+				if (globalResult.data?.enableTemplateResolution === false) {
+					merged.enableTemplateResolution = false;
+				}
+				if (globalResult.data?.enableDynamicUi === false) {
+					merged.enableDynamicUi = false;
+				}
+				setSettings(merged);
+
+				// Filter agent names by global visible agents
+				const globalAgents = globalResult.data?.visibleAgents;
+				const filteredAgents =
+					globalAgents && globalAgents.length > 0
+						? allAgents.filter((a) => globalAgents.includes(a))
+						: allAgents;
+				setAgentNames(filteredAgents);
+
+				// Fetch starter prompts for the filtered agents
+				if (filteredAgents.length > 0) {
+					service.getStarterPrompts(filteredAgents).then((promptResult) => {
+						if (promptResult.data) {
+							setStarterPrompts(promptResult.data);
+						}
+					}).catch(() => { /* starter prompts unavailable */ });
+				}
+			},
+		);
 	}, [service]);
+
+	const updateSettings = useCallback(
+		(
+			user: Partial<IAIAssistantSettings>,
+			global: Partial<IAIAssistantSettings>,
+		) => {
+			const merged = { ...DEFAULT_SETTINGS, ...global, ...user };
+			if (global.enableTemplateResolution === false) {
+				merged.enableTemplateResolution = false;
+			}
+			if (global.enableDynamicUi === false) {
+				merged.enableDynamicUi = false;
+			}
+			setSettings(merged);
+
+			// Re-filter agents based on visibleAgents
+			const va = global.visibleAgents;
+			const all = allAgentNamesRef.current;
+			const filtered = va && va.length > 0 ? all.filter((a) => va.includes(a)) : all;
+			setAgentNames(filtered);
+		},
+		[],
+	);
 
 	const contextValue = useMemo(
 		() => ({
@@ -109,6 +188,8 @@ export const AIAssistant = ({
 			agentNames,
 			starterPrompts,
 			theme,
+			settings,
+			updateSettings,
 		}),
 		[
 			sendMessage,
@@ -122,6 +203,8 @@ export const AIAssistant = ({
 			agentNames,
 			starterPrompts,
 			theme,
+			settings,
+			updateSettings,
 		],
 	);
 
@@ -147,7 +230,7 @@ export const AIAssistant = ({
 
 	const visibleExtensions = useMemo(
 		() =>
-			extensions?.filter((ext) => {
+			(extensions ?? DEFAULT_EXTENSIONS).filter((ext) => {
 				const required = EXTENSION_PERMISSIONS[ext.extensionMeta.key];
 				return !required || checkPermission(permissions, required);
 			}),
@@ -181,16 +264,16 @@ export const AIAssistant = ({
 		setActiveView(CHAT_VIEW);
 	}, [newChat]);
 
-	const activeExtension = visibleExtensions?.find(
+	const activeExtension = visibleExtensions.find(
 		(ext) => ext.extensionMeta.key === activeView,
 	);
 
-	const hasExtensions = visibleExtensions && visibleExtensions.length > 0;
+	const hasExtensions = visibleExtensions.length > 0;
 
 	const sidebarNavItems = useMemo(
 		() => [
 			{ key: CHAT_VIEW, label: "New Chat", icon: AddRegular },
-			...(visibleExtensions ?? [])
+			...visibleExtensions
 				.filter((ext) => ext.extensionMeta.key !== "chats")
 				.map((ext) => ({
 					key: ext.extensionMeta.key,
@@ -404,7 +487,7 @@ export const AIAssistant = ({
 											classes.sidebarNavButton,
 											!isSidebarCollapsed && classes.sidebarNavButtonExpanded,
 											activeView === item.key &&
-												item.key !== CHAT_VIEW &&
+												(item.key !== CHAT_VIEW || !hasMessages) &&
 												classes.sidebarNavButtonActive,
 										)}
 										type="button"
@@ -428,7 +511,7 @@ export const AIAssistant = ({
 								))}
 							</nav>
 							{!isSidebarCollapsed && (
-								<SidebarChatHistory onSelect={handleBackToChat} />
+								<SidebarChatHistory onSelect={handleBackToChat} showSelection={activeView === CHAT_VIEW} />
 							)}
 						</div>
 						<div className={classes.contentBody}>{renderContent()}</div>

@@ -5,9 +5,6 @@ import { homeStyles } from "./Home.styles";
 import {
 	AIAssistant,
 	agUiAdapter,
-	ConversationHistory,
-	StarterPrompts,
-	TemplateRenderer,
 	AIAssistantService,
 	AIAssistantPermission,
 } from "../../../ai-assistant";
@@ -44,16 +41,12 @@ export const Home = () => {
 		[getAccessToken],
 	);
 
-	const extensions = useMemo(
-		() => [ConversationHistory, StarterPrompts, TemplateRenderer],
-		[],
-	);
-
 	const permissions = useMemo(
 		() => [
 			AIAssistantPermission.View,
 			AIAssistantPermission.ManageTemplates,
 			AIAssistantPermission.ManageStarterPrompts,
+			AIAssistantPermission.ManageSettings,
 		],
 		[],
 	);
@@ -109,7 +102,6 @@ export const Home = () => {
 						>
 							<AIAssistant
 								adapter={adapter}
-								extensions={extensions}
 								permissions={permissions}
 								service={assistantService}
 								onClose={handleToggleAssistant}

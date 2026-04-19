@@ -1,5 +1,9 @@
 import type { IAIAssistantService } from "./AIAssistant.services";
-import type { AIAssistantPermission, IChatMessage } from "./AIAssistant.types";
+import type {
+	AIAssistantPermission,
+	IAIAssistantSettings,
+	IChatMessage,
+} from "./AIAssistant.types";
 
 export const checkPermission = (
 	permissions: AIAssistantPermission[] | undefined,
@@ -55,18 +59,18 @@ export const normalizeGeneratedHtml = (raw: string): string => {
 
 /**
  * Returns true when the message should go through the rendering pipeline.
- * Only assistant messages with tool call data or an explicit templateId qualify.
+ * Assistant messages with tool call data or an explicit templateId qualify.
  * Plain text assistant responses render as text bubbles without resolution.
  */
 export const needsResolution = (message: IChatMessage): boolean => {
 	if (message.role !== "assistant") return false;
 	const data = message.data;
 	if (!data) return false;
-	const toolCalls = data.toolCalls as Array<{ name?: string }> | undefined;
+	// Trigger resolution if there are any tool calls or an explicit templateId
+	const toolCalls = data.toolCalls as Array<unknown> | undefined;
+	if (toolCalls?.length) return true;
 	const templateId =
-		(data.templateId as string) ??
-		(data.TemplateId as string) ??
-		toolCalls?.[0]?.name;
+		(data.templateId as string) ?? (data.TemplateId as string);
 	return !!templateId;
 };
 
@@ -110,13 +114,14 @@ export const resolveMessage = (
 	service: IAIAssistantService,
 	model?: string,
 	theme?: "light" | "dark",
+	settings?: IAIAssistantSettings,
 ): Promise<string | undefined> => {
 	if (message.role !== "assistant") return Promise.resolve(undefined);
 
 	const existing = resolveCache.get(message.id);
 	if (existing) return existing.promise;
 
-	const promise = resolveMessageImpl(message, service, model, theme);
+	const promise = resolveMessageImpl(message, service, model, theme, settings);
 	const entry = { promise, done: false, html: undefined as string | undefined };
 	resolveCache.set(message.id, entry);
 	promise
@@ -136,56 +141,63 @@ const resolveMessageImpl = async (
 	service: IAIAssistantService,
 	model?: string,
 	theme?: "light" | "dark",
+	settings?: IAIAssistantSettings,
 ): Promise<string | undefined> => {
 	// Priority 1: Template from DB — fetch by templateId (convention: tool name = template name)
-	const toolCalls = message.data?.toolCalls as
-		| Array<{ name?: string }>
-		| undefined;
-	const templateId =
-		(message.data?.templateId as string) ??
-		(message.data?.TemplateId as string) ??
-		toolCalls?.[0]?.name;
-	if (templateId) {
-		try {
-			const entity = await service.getTemplateById(templateId);
-			if (entity.data?.content) {
-				return entity.data.content;
+	if (settings?.enableTemplateResolution !== false) {
+		const toolCalls = message.data?.toolCalls as
+			| Array<{ name?: string; result?: string }>
+			| undefined;
+		const templateId =
+			(message.data?.templateId as string) ??
+			(message.data?.TemplateId as string) ??
+			toolCalls?.[0]?.name;
+		if (templateId) {
+			try {
+				const entity = await service.getTemplateById(templateId);
+				if (entity.data?.content) {
+					return entity.data.content;
+				}
+			} catch {
+				/* fall through */
 			}
-		} catch {
-			/* fall through */
 		}
 	}
 
 	// Priority 2: Generate dynamic HTML via OpenAI
-	const toolPayload = message.data
-		? extractToolPayload(message.data)
-		: undefined;
-	const dataStr = toolPayload
-		? JSON.stringify(toolPayload)
-		: message.content?.trim() || undefined;
+	if (settings?.enableDynamicUi !== false) {
+		const toolPayload = message.data
+			? extractToolPayload(message.data)
+			: undefined;
+		const dataStr = toolPayload ? JSON.stringify(toolPayload) : undefined;
 
-	if (dataStr) {
-		const customPrompt = ""; //message.customPrompt as string | undefined;
-		const prompt = [buildSystemPrompt(theme), customPrompt?.trim()]
-			.filter(Boolean)
-			.join("\n\n");
-		try {
-			const raw = await service.generateDynamicUi(dataStr, prompt, model);
-			if (raw) return normalizeGeneratedHtml(raw) || undefined;
-		} catch {
-			/* fall through */
+		if (dataStr) {
+			const prompt = buildSystemPrompt(theme);
+			try {
+				const raw = await service.generateDynamicUi(dataStr, prompt, model);
+				if (raw) {
+					const normalized = normalizeGeneratedHtml(raw);
+					if (normalized) return normalized;
+				}
+			} catch {
+				/* fall through */
+			}
 		}
 	}
 
-	// Priority 3: No resolution available
+	// Priority 3: No resolution available — component will show message.content or raw data
 	return undefined;
 };
 
-const extractToolPayload = (
+export const extractToolPayload = (
 	data: Record<string, unknown>,
 ): unknown | undefined => {
-	const toolCalls = data.toolCalls as Array<{ result?: string }> | undefined;
+	const toolCalls = data.toolCalls as
+		| Array<{ name?: string; args?: string; result?: string }>
+		| undefined;
 	if (!toolCalls?.length) return undefined;
+
+	// Prefer results, but fall back to args if no results available
 	const results = toolCalls
 		.filter((tc) => tc.result)
 		.map((tc) => {
@@ -196,6 +208,24 @@ const extractToolPayload = (
 				return tc.result;
 			}
 		});
-	if (results.length === 0) return undefined;
-	return results.length === 1 ? results[0] : results;
+	if (results.length > 0) {
+		return results.length === 1 ? results[0] : results;
+	}
+
+	// Fall back to args if no results
+	const args = toolCalls
+		.filter((tc) => tc.args)
+		.map((tc) => {
+			try {
+				// biome-ignore lint/style/noNonNullAssertion: guarded by filter above
+				return JSON.parse(tc.args!);
+			} catch {
+				return tc.args;
+			}
+		});
+	if (args.length > 0) {
+		return args.length === 1 ? args[0] : args;
+	}
+
+	return undefined;
 };

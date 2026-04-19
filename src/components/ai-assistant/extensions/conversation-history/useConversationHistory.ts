@@ -7,7 +7,7 @@ import type { IEntity } from "../../AIAssistant.services";
 let inflightConversations: Promise<IEntity<IConversation[]>> | null = null;
 
 export const useConversationHistory = () => {
-	const { service, newChat, setMessages, setThreadId } =
+	const { service, newChat, setMessages, setThreadId, threadId } =
 		useAIAssistantContext();
 	const [conversations, setConversations] = useState<IConversation[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -57,15 +57,12 @@ export const useConversationHistory = () => {
 	const handleSelect = useCallback(
 		async (conversation: IConversation, onClose: () => void) => {
 			if (!service) return;
-			setThreadId(conversation.threadId);
-			setMessages([]);
 			onClose();
 			const result = await service.getConversationMessages(
 				conversation.threadId,
 			);
-			if (result.data) {
-				setMessages(result.data);
-			}
+			setThreadId(conversation.threadId);
+			setMessages(result.data ?? []);
 		},
 		[service, setMessages, setThreadId],
 	);
@@ -88,5 +85,6 @@ export const useConversationHistory = () => {
 		setSearchQuery,
 		handleSelect,
 		handleNewChat,
+		activeThreadId: threadId,
 	};
 };
