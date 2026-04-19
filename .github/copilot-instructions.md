@@ -6,8 +6,10 @@ This is an npm component library (`@techtrips/ai-assistant`). The published pack
 
 - **TypeScript**: Biome (tabs, double quotes). No Prettier or ESLint.
 - **Package manager**: npm only.
-- **Component style**: Fluent UI v9 `makeStyles` (Griffel).
-- **File structure**: Co-located `*.styles.ts`, `*.types.ts` per component.
+- **Component style**: Fluent UI v9 `makeStyles` (Griffel). No inline styles.
+- **File structure**: Co-located `*.styles.ts`, `*.types.ts` (pure types) or `*.models.ts` (has runtime code) per component.
+- **CSS custom properties**: Child components use `var(--agent-chat-*)` variables, NOT Fluent tokens directly.
+- **Plain inputs**: Use plain `<input>` / `<textarea>` (not Fluent `<Input>`) when CSS custom properties need to apply.
 
 ## Key Commands
 
@@ -25,9 +27,13 @@ This is an npm component library (`@techtrips/ai-assistant`). The published pack
 
 The `AIAssistant` component uses an **adapter pattern** — all AI backends are pluggable via `IChatAdapter`. Built-in adapters: `agUiAdapter` (AG-UI streaming), `restAdapter` (REST POST).
 
-Extensions (ConversationHistory, StarterPrompts, TemplateRenderer) self-register into the sidebar via `extensionMeta`. Gated by `AIAssistantPermission`.
+`AIAssistant.tsx` is **JSX-only** — all state and logic lives in the `useAIAssistant` hook.
 
-`IAIAssistantService` provides CRUD for conversations, prompts, and templates.
+Extensions (ConversationHistory, StarterPrompts, TemplateRenderer, Settings) self-register into the sidebar via `extensionMeta`. Gated by `AIAssistantPermission`.
+
+`IAIAssistantService` provides CRUD for conversations, prompts, templates, settings, and agent names.
+
+Starter prompts support parameterized placeholders: `{param}` (required) and `{param?}` (optional).
 
 ## Documentation
 

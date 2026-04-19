@@ -1,6 +1,6 @@
 # AIAssistant
 
-A modern, adapter-driven AI chat component built with Fluent UI v9. Features streaming responses, conversation history, starter prompts, templates, resizable side-panel / full-screen modes, and a plug-in extension system.
+A modern, adapter-driven AI chat component built with Fluent UI v9. Features streaming responses, conversation history, starter prompts with parameterized placeholders, templates, resizable side-panel / full-screen modes, and a plug-in extension system.
 
 ## Usage
 
@@ -16,7 +16,6 @@ const adapter = agUiAdapter({
   adapter={adapter}
   headerText="My AI Assistant"
   greetingText="How can I help you today?"
-  agents={[{ name: 'OrderAgent', description: 'Handles orders' }]}
   permissions={[AIAssistantPermission.View]}
   theme="dark"
   onClose={() => setOpen(false)}
@@ -36,10 +35,15 @@ const adapter = restAdapter({
 <AIAssistant adapter={adapter} />
 ```
 
-### With a custom service for extensions
+### With a service for extensions
 
 ```tsx
-import { AIAssistant, agUiAdapter, AIAssistantService } from '@techtrips/ai-assistant';
+import {
+  AIAssistant,
+  agUiAdapter,
+  AIAssistantService,
+  AIAssistantPermission,
+} from '@techtrips/ai-assistant';
 
 const adapter = agUiAdapter({ url: agentUrl, getToken });
 const service = new AIAssistantService({ baseUrl: apiBaseUrl, getToken });
@@ -47,8 +51,12 @@ const service = new AIAssistantService({ baseUrl: apiBaseUrl, getToken });
 <AIAssistant
   adapter={adapter}
   service={service}
-  permissions={[AIAssistantPermission.View, AIAssistantPermission.ManageTemplates]}
-  extensions={[ConversationHistory, StarterPrompts, TemplateRenderer]}
+  permissions={[
+    AIAssistantPermission.View,
+    AIAssistantPermission.ManageTemplates,
+    AIAssistantPermission.ManageStarterPrompts,
+    AIAssistantPermission.ManageSettings,
+  ]}
 />
 ```
 
@@ -57,17 +65,16 @@ const service = new AIAssistantService({ baseUrl: apiBaseUrl, getToken });
 | Prop | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `adapter` | `IChatAdapter` | Yes | — | Chat adapter that handles message transport (see Adapters below). |
-| `theme` | `'light' \| 'dark'` | No | — | Color theme. |
+| `theme` | `'light' \| 'dark'` | No | `'light'` | Color theme. |
 | `greetingText` | `string` | No | — | Greeting shown when the chat is empty. |
 | `headerText` | `string` | No | `'AI Assistant'` | Header title text. |
 | `defaultFullScreen` | `boolean` | No | `false` | Start in full-screen mode. |
 | `showFullScreenToggle` | `boolean` | No | `true` | Show the full-screen / side-panel toggle button. |
 | `className` | `string` | No | — | Additional CSS class for the root element. |
-| `extensions` | `AIAssistantExtension[]` | No | — | Plug-in extensions (e.g. `ConversationHistory`, `StarterPrompts`, `TemplateRenderer`). |
+| `extensions` | `AIAssistantExtension[]` | No | Built-in (ConversationHistory, StarterPrompts, TemplateRenderer, Settings) | Plug-in extensions for the sidebar. |
 | `renderMessage` | `(message: IChatMessage) => ReactNode` | No | — | Custom renderer for chat messages. |
-| `service` | `IAIAssistantService` | No | — | Service implementation for extension data (conversations, templates, prompts). |
+| `service` | `IAIAssistantService` | No | — | Service implementation for extension data (conversations, templates, prompts, settings, agent names). |
 | `permissions` | `AIAssistantPermission[]` | No | `[View]` | Permissions controlling which extensions are accessible. |
-| `agents` | `IAIAssistantAgent[]` | No | — | List of available agents. |
 | `onClose` | `() => void` | No | — | Callback when the close button is clicked. |
 
 ## Adapters
@@ -146,7 +153,7 @@ const MyExtension = defineExtension(MyExtensionComponent, {
 <AIAssistant adapter={adapter} extensions={[MyExtension]} />
 ```
 
-Built-in extensions: `ConversationHistory`, `StarterPrompts`, `TemplateRenderer`.
+Built-in extensions: `ConversationHistory`, `StarterPrompts`, `TemplateRenderer`, `Settings`.
 
 ### Extension permissions
 
@@ -156,15 +163,33 @@ Extensions requiring elevated access are gated by `AIAssistantPermission`:
 |---------------|---------------------|
 | `prompts` | `ManageStarterPrompts` |
 | `templates` | `ManageTemplates` |
+| `settings` | `ManageSettings` |
+
+## Starter Prompts
+
+Starter prompts are onboarding suggestions shown on the welcome screen as chips. They support parameterized placeholders:
+
+- `{paramName}` — required parameter (user must fill in before sending)
+- `{paramName?}` — optional parameter (can be left empty)
+
+When a user selects a prompt with parameters, a `PromptParameterForm` renders input fields. Required fields show a red `*`, optional fields show "(optional)". The resolved prompt is sent once the user submits.
+
+Example prompt text: `Search for credit requests for agreement {agreementId} in {region?}`
 
 ## Types
 
-### `IAIAssistantAgent`
+### `IStarterPrompt`
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | `string` | Yes | Agent name. |
-| `description` | `string` | No | Human-readable agent description. |
+| `id` | `string` | No | Unique prompt ID. |
+| `agentName` | `string` | No | Associated agent name. |
+| `title` | `string` | Yes | Display title. |
+| `description` | `string` | No | Short description. |
+| `prompt` | `string` | No | Prompt text with optional `{param}` / `{param?}` placeholders. |
+| `parameters` | `string[]` | No | Parameter names (auto-detected from prompt text). |
+| `tags` | `string[]` | No | Categorisation tags. |
+| `order` | `number` | No | Display order (lower = first). |
 
 ### `IChatMessage`
 
@@ -183,10 +208,11 @@ Extensions requiring elevated access are gated by `AIAssistantPermission`:
 | `View` | Basic view access. |
 | `ManageTemplates` | Can create/edit/delete templates. |
 | `ManageStarterPrompts` | Can create/edit/delete starter prompts. |
+| `ManageSettings` | Can modify user and global settings. |
 
 ### `IAIAssistantService`
 
-Service interface for extension data operations. Combines `IStarterPromptService`, `ITemplateService`, and `IConversationService`. Use the built-in `AIAssistantService` class or provide your own implementation:
+Service interface for extension data operations. Use the built-in `AIAssistantService` class or provide your own implementation:
 
 ```ts
 import { AIAssistantService } from '@techtrips/ai-assistant';
@@ -197,28 +223,23 @@ const service = new AIAssistantService({
 });
 ```
 
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `runAgent` | `(request: IRunAgentRequest) => Promise<IRunAgentResult>` | Runs an agent and returns the response. |
-| `getConversationHistory` | `() => Promise<IEntity<IAIAssistantConversation[]>>` | Fetches all conversations for the user. |
-| `getConversationMessages` | `(threadId: string) => Promise<IEntity<IAIAssistantMessage[]>>` | Fetches messages for a conversation thread. |
-| `getAIModels` | `() => Promise<IEntity<IAIAssistantModel[]>>` | Fetches available AI model deployments. |
-| `generateDynamicUi` | `(payload, customPrompt?, model?) => Promise<string \| undefined>` | Generates dynamic HTML UI from agent response data. |
-| `getStarterPrompts` | `() => Promise<IEntity<IAIAssistantStarterPrompt[]>>` | Fetches starter prompts. |
-| `addStarterPrompt` | `(prompt) => Promise<IEntity<IAIAssistantStarterPrompt>>` | Creates a new starter prompt. |
-| `updateStarterPrompt` | `(prompt) => Promise<IEntity<IAIAssistantStarterPrompt>>` | Updates an existing starter prompt. |
-| `deleteStarterPrompt` | `(promptId, agentName?) => Promise<IEntity<void>>` | Deletes a starter prompt. |
-| `getTemplates` | `() => Promise<IEntity<IAIAssistantTemplate[]>>` | Fetches all templates. |
-| `getTemplateById` | `(templateId) => Promise<IEntity<IAIAssistantTemplate>>` | Fetches a template by ID. |
-| `addTemplate` | `(template) => Promise<IEntity<IAIAssistantTemplate>>` | Creates a new template. |
-| `updateTemplate` | `(template) => Promise<IEntity<IAIAssistantTemplate>>` | Updates an existing template. |
-| `deleteTemplate` | `(templateId) => Promise<IEntity<void>>` | Deletes a template. |
-
-### `ITemplateInfo`
-
-Passed to the `getTemplate` callback prop.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `templateName` | `string` | Name of the template to resolve. |
-| `error` | `string \| undefined` | Error message, if any. |
+| Method | Description |
+|--------|-------------|
+| `getAgentNames()` | Fetches available agent names. |
+| `getUserSettings()` | Fetches user-level settings. |
+| `getGlobalSettings()` | Fetches global (admin) settings. |
+| `saveUserSettings(settings)` | Saves user-level settings. |
+| `saveGlobalSettings(settings)` | Saves global settings. |
+| `getConversationHistory()` | Fetches all conversations for the user. |
+| `getConversationMessages(threadId)` | Fetches messages for a conversation thread. |
+| `deleteConversation(threadId)` | Deletes a conversation. |
+| `generateDynamicUi(payload, prompt?, model?)` | Generates dynamic HTML UI from agent response data. |
+| `getStarterPrompts(agentNames)` | Fetches starter prompts filtered by agent names. |
+| `addStarterPrompt(prompt)` | Creates a new starter prompt. |
+| `updateStarterPrompt(prompt)` | Updates an existing starter prompt. |
+| `deleteStarterPrompt(promptId, agentName?)` | Deletes a starter prompt. |
+| `getTemplates()` | Fetches all templates. |
+| `getTemplateById(templateId)` | Fetches a template by ID. |
+| `addTemplate(template)` | Creates a new template. |
+| `updateTemplate(template)` | Updates an existing template. |
+| `deleteTemplate(templateId)` | Deletes a template. |
