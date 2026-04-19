@@ -61,9 +61,9 @@ function App() {
   return (
     <AIAssistant
       adapter={adapter}
-      headerText="My AI Assistant"
+      headerText="TechTrips Assistant"
       greetingText="How can I help you today?"
-      agents={[{ name: "OrderAgent", description: "Handles orders" }]}
+      agents={[{ name: "TechTrips Agent", description: "Handles TechTrips queries" }]}
       permissions={[AIAssistantPermission.View]}
       theme="dark"
       onClose={() => console.log("closed")}
