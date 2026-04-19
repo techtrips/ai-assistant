@@ -2,7 +2,7 @@
 	"name": "@techtrips/ai-assistant",
 	"module": "lib/index.js",
 	"types": "lib/index.d.ts",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"scripts": {
 		"clean": "rimraf lib",
 		"build": "npm run clean && tsc -p tsconfig.prod.json",
