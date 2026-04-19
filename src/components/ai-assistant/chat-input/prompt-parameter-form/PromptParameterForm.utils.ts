@@ -1,5 +1,6 @@
 export const prettifyParamName = (name: string): string => {
-	const words = name
+	const clean = name.replace(/\?$/, "");
+	const words = clean
 		.replace(/([a-z])([A-Z])/g, "$1 $2")
 		.replace(/[_-]/g, " ")
 		.split(/\s+/);
@@ -9,6 +10,8 @@ export const prettifyParamName = (name: string): string => {
 		.join(" ");
 };
 
+export const isOptionalParam = (name: string): boolean => name.endsWith("?");
+
 export const resolvePrompt = (
 	template: string,
 	parameters: string[],
@@ -16,8 +19,9 @@ export const resolvePrompt = (
 ): string => {
 	let resolved = template;
 	for (const param of parameters) {
-		const pattern = new RegExp(`\\{${param}\\}`, "gi");
-		resolved = resolved.replace(pattern, values[param] ?? "");
+		const value = (values[param] ?? "").trim();
+		const pattern = new RegExp(`\\{${param.replace("?", "\\?")}\\}`, "gi");
+		resolved = resolved.replace(pattern, value);
 	}
-	return resolved;
+	return resolved.replace(/\s{2,}/g, " ").trim();
 };

@@ -5,7 +5,7 @@ import { checkPermission } from "../../AIAssistant.utils";
 import type { IStarterPrompt } from "../../AIAssistant.types";
 
 export const useStarterPrompts = () => {
-	const { service, permissions, sendMessage, agentNames: contextAgentNames } =
+	const { service, permissions, sendMessage, agentNames: contextAgentNames, refreshStarterPrompts } =
 		useAIAssistantContext();
 	const canManage = checkPermission(
 		permissions,
@@ -80,13 +80,14 @@ export const useStarterPrompts = () => {
 					if (result.data) setPrompts((prev) => [...prev, result.data!]);
 				}
 				setPanelTarget(null);
+				refreshStarterPrompts();
 			} catch (err) {
 				setPanelError(err instanceof Error ? err.message : "Failed to save.");
 			} finally {
 				setSaving(false);
 			}
 		},
-		[service],
+		[service, refreshStarterPrompts],
 	);
 
 	const handleDelete = useCallback(async () => {
@@ -101,6 +102,7 @@ export const useStarterPrompts = () => {
 			if (result.error) throw new Error(result.error);
 			setPrompts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
 			setDeleteTarget(null);
+			refreshStarterPrompts();
 		} catch (err) {
 			setDeleteError(err instanceof Error ? err.message : "Failed to delete.");
 		} finally {

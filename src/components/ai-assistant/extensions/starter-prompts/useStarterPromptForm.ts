@@ -25,11 +25,20 @@ export const useStarterPromptForm = (
 
 	useEffect(() => {
 		if (target) {
-			const params = normalizeList(target.parameters);
-			extractParameters(target.prompt ?? "").forEach((p) => {
-				if (!params.some((x) => x.toLowerCase() === p.toLowerCase()))
-					params.push(p);
-			});
+			// Extract params from prompt text (with ? suffix for optionality)
+			const fromPrompt = extractParameters(target.prompt ?? "");
+			const fromPromptBases = new Set(
+				fromPrompt.map((p) => p.replace(/\?$/, "").toLowerCase()),
+			);
+			// Keep stored params not already detected from the prompt text
+			const stored = normalizeList(target.parameters).filter(
+				(p) => !fromPromptBases.has(p.replace(/\?$/, "").toLowerCase()),
+			);
+			// Strip ? from all for display; optionality lives in prompt text
+			const allBases = [...fromPrompt, ...stored].map((p) =>
+				p.replace(/\?$/, ""),
+			);
+			const params = [...new Set(allBases)];
 			setForm({
 				title: target.title,
 				agentName: target.agentName?.trim() ?? agents[0] ?? "",
@@ -55,22 +64,31 @@ export const useStarterPromptForm = (
 	const handlePromptChange = (value: string) => {
 		const detected = extractParameters(value);
 		setForm((prev) => {
-			const merged = [...prev.parameters];
-			for (const p of detected) {
-				if (!merged.some((x) => x.toLowerCase() === p.toLowerCase()))
-					merged.push(p);
-			}
+			const detectedBases = detected.map((p) =>
+				p.replace(/\?$/, ""),
+			);
+			const detectedSet = new Set(
+				detectedBases.map((b) => b.toLowerCase()),
+			);
+			// Keep manually-added params that are NOT in the prompt text
+			const manual = prev.parameters.filter(
+				(p) => !detectedSet.has(p.toLowerCase()),
+			);
+			// Store base names only (no ?); optionality lives in the prompt text
+			const unique = [...new Set(detectedBases.map((b) => b))];
+			const merged = [...unique, ...manual];
 			return { ...prev, prompt: value, parameters: merged };
 		});
 	};
 
 	const addParam = () => {
-		const p = paramInput.trim().replace(/[^\w]/g, "_");
-		if (!p) return;
+		const raw = paramInput.trim();
+		const base = raw.replace(/\?$/, "").replace(/[^\w]/g, "_");
+		if (!base) return;
 		setForm((prev) => {
-			if (prev.parameters.some((x) => x.toLowerCase() === p.toLowerCase()))
+			if (prev.parameters.some((x) => x.toLowerCase() === base.toLowerCase()))
 				return prev;
-			return { ...prev, parameters: [...prev.parameters, p] };
+			return { ...prev, parameters: [...prev.parameters, base] };
 		});
 		setParamInput("");
 	};
@@ -119,10 +137,16 @@ export const useStarterPromptForm = (
 
 	const handleSubmit = useCallback(async () => {
 		if (!isValid) return;
-		const allParams = normalizeList([
-			...form.parameters,
-			...extractParameters(form.prompt),
-		]);
+		// Extract params from prompt text (preserves ? suffix for optionality)
+		const fromPrompt = extractParameters(form.prompt);
+		const fromPromptBases = new Set(
+			fromPrompt.map((p) => p.replace(/\?$/, "").toLowerCase()),
+		);
+		// Keep manually-added params not present in the prompt text
+		const manual = form.parameters.filter(
+			(p) => !fromPromptBases.has(p.toLowerCase()),
+		);
+		const allParams = normalizeList([...fromPrompt, ...manual]);
 		await onSave({
 			...target,
 			title: form.title.trim(),

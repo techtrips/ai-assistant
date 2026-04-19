@@ -147,7 +147,7 @@ export const StarterPromptForm = ({
 			{renderField(
 				<Chat20Regular />,
 				"Prompt",
-				"Use {paramName} to insert parameters",
+				"Use {paramName} or {paramName?} to insert mandatory or optional parameters",
 				<textarea
 					className={classes.textarea}
 					placeholder="Search for credit requests for agreement {agreementId}"

@@ -19,6 +19,7 @@ export interface IAIAssistantContextValue {
 	agentNames: string[];
 	starterPrompts: IStarterPrompt[];
 	starterPromptsLoading: boolean;
+	refreshStarterPrompts: () => void;
 	theme: "light" | "dark";
 	settings: IAIAssistantSettings;
 	updateSettings: (

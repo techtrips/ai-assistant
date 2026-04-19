@@ -1,9 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Button, Input, mergeClasses } from "@fluentui/react-components";
+import { Button, mergeClasses } from "@fluentui/react-components";
 import { Dismiss12Regular, ArrowRight24Filled } from "@fluentui/react-icons";
 import type { IStarterPrompt } from "../../AIAssistant.types";
 import { usePromptFormStyles } from "./PromptParameterForm.styles";
-import { resolvePrompt, prettifyParamName } from "./PromptParameterForm.utils";
+import {
+	resolvePrompt,
+	prettifyParamName,
+	isOptionalParam,
+} from "./PromptParameterForm.utils";
 
 interface IPromptParameterFormProps {
 	prompt: IStarterPrompt;
@@ -37,19 +41,20 @@ export const PromptParameterForm = ({
 		setValues((prev) => ({ ...prev, [param]: value }));
 	}, []);
 
-	const allFieldsFilled = parameters.every(
+	const requiredParams = parameters.filter((p) => !isOptionalParam(p));
+	const allRequiredFilled = requiredParams.every(
 		(param) => (values[param] ?? "").trim().length > 0,
 	);
 
 	const handleSubmit = useCallback(() => {
-		if (!allFieldsFilled) return;
+		if (!allRequiredFilled) return;
 		const resolved = resolvePrompt(promptTemplate, parameters, values);
 		onSubmit(resolved);
-	}, [allFieldsFilled, promptTemplate, parameters, values, onSubmit]);
+	}, [allRequiredFilled, promptTemplate, parameters, values, onSubmit]);
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
-			if (e.key === "Enter" && !e.shiftKey && allFieldsFilled) {
+			if (e.key === "Enter" && !e.shiftKey && allRequiredFilled) {
 				e.preventDefault();
 				handleSubmit();
 			}
@@ -58,58 +63,63 @@ export const PromptParameterForm = ({
 				onCancel();
 			}
 		},
-		[allFieldsFilled, handleSubmit, onCancel],
+		[allRequiredFilled, handleSubmit, onCancel],
 	);
 
 	if (parameters.length === 0) return null;
 
-	const lastIndex = parameters.length - 1;
-
 	return (
 		<div className={classes.wrapper} onKeyDown={handleKeyDown}>
-			<div className={classes.topRow}>
-				<span className={classes.titleBadge}>{prompt.title}</span>
-				<Button
-					appearance="transparent"
-					size="small"
-					aria-label="Cancel"
-					className={classes.dismissButton}
-					icon={<Dismiss12Regular />}
-					onClick={onCancel}
-				/>
-			</div>
-			<div className={classes.fields}>
-				{parameters.map((param, index) => (
-					<div key={param} className={classes.inputRow}>
-						<div className={classes.inputGrow}>
-							<Input
+			<div className={classes.card}>
+				<div className={classes.topRow}>
+					<span className={classes.titleBadge}>{prompt.title}</span>
+					<Button
+						appearance="transparent"
+						size="small"
+						aria-label="Cancel"
+						className={classes.dismissButton}
+						icon={<Dismiss12Regular />}
+						onClick={onCancel}
+					/>
+				</div>
+				<div className={classes.fields}>
+					{parameters.map((param, index) => {
+						const optional = isOptionalParam(param);
+						return (
+						<div key={param} className={classes.fieldGroup}>
+							<label className={classes.fieldLabel}>
+								{prettifyParamName(param)}
+								{optional ? (
+									<span className={classes.optionalHint}>(optional)</span>
+								) : (
+									<span className={classes.requiredMark}>*</span>
+								)}
+							</label>
+							<input
 								className={classes.input}
-								size="medium"
+								ref={index === 0 ? firstInputRef : undefined}
 								value={values[param] ?? ""}
-								onChange={(_, data) => handleFieldChange(param, data.value)}
-								placeholder={`Enter ${prettifyParamName(param)}`}
+								onChange={(e) => handleFieldChange(param, e.target.value)}
+								placeholder={`Enter ${prettifyParamName(param)}${optional ? " (optional)" : ""}`}
 								autoComplete="off"
-								appearance="filled-lighter"
-								input={{ ref: index === 0 ? firstInputRef : undefined }}
 							/>
 						</div>
-						{index === lastIndex ? (
-							<Button
-								appearance="transparent"
-								aria-label="Send"
-								className={mergeClasses(
-									classes.sendButton,
-									allFieldsFilled && classes.sendButtonActive,
-								)}
-								disabled={!allFieldsFilled}
-								onClick={handleSubmit}
-								icon={<ArrowRight24Filled />}
-							/>
-						) : (
-							<div className={classes.sendButtonSpacer} />
+						);
+					})}
+				</div>
+				<div className={classes.actionBar}>
+					<Button
+						appearance="transparent"
+						aria-label="Send"
+						className={mergeClasses(
+							classes.sendButton,
+							allRequiredFilled && classes.sendButtonActive,
 						)}
-					</div>
-				))}
+						disabled={!allRequiredFilled}
+						onClick={handleSubmit}
+						icon={<ArrowRight24Filled />}
+					/>
+				</div>
 			</div>
 		</div>
 	);

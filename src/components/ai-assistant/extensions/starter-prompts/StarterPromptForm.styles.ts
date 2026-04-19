@@ -22,6 +22,9 @@ export const useStarterPromptFormStyles = makeStyles({
 	},
 	fieldTitleGroup: { minWidth: 0, flex: 1 },
 	fieldTitle: {
+		display: "inline-flex",
+		alignItems: "center",
+		...shorthands.gap("4px"),
 		fontSize: tokens.fontSizeBase200,
 		fontWeight: tokens.fontWeightSemibold,
 		color: tokens.colorNeutralForeground1,
