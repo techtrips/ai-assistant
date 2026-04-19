@@ -37,6 +37,7 @@ export const TemplateForm = ({
 	});
 	const [availableTools, setAvailableTools] = useState<string[]>([]);
 	const [loadingTools, setLoadingTools] = useState(false);
+	const [toolsError, setToolsError] = useState("");
 
 	useEffect(() => {
 		if (target) {
@@ -48,19 +49,30 @@ export const TemplateForm = ({
 		} else {
 			setForm({ name: "", description: "", agent: "" });
 			setAvailableTools([]);
+			setToolsError("");
 		}
 	}, [target]);
 
 	const handleAgentChange = async (agent: string) => {
 		setForm((prev) => ({ ...prev, agent, name: "" }));
+		setToolsError("");
 		if (!agent) {
 			setAvailableTools([]);
 			return;
 		}
 		setLoadingTools(true);
-		const tools = await fetchToolsForAgent(agent);
-		setAvailableTools(tools);
-		setLoadingTools(false);
+		try {
+			const tools = await fetchToolsForAgent(agent);
+			setAvailableTools(tools);
+			if (tools.length === 0) {
+				setToolsError("No tools available for this agent.");
+			}
+		} catch {
+			setAvailableTools([]);
+			setToolsError("Failed to load tools.");
+		} finally {
+			setLoadingTools(false);
+		}
 	};
 
 	const isValid = form.name.trim().length > 0 && form.agent.trim().length > 0;
@@ -119,30 +131,35 @@ export const TemplateForm = ({
 				{target ? (
 					<div className={classes.readOnlyValue}>{form.name}</div>
 				) : (
-					<select
-						className={classes.select}
-						value={form.name}
-						disabled={!form.agent || loadingTools}
-						onChange={(e) =>
-							setForm((prev) => ({
-								...prev,
-								name: e.target.value,
-							}))
-						}
-					>
-						<option value="">
-							{loadingTools
-								? "Loading tools…"
-								: !form.agent
-									? "— Select an agent first —"
-									: "— Select a tool —"}
-						</option>
-						{availableTools.map((tool) => (
-							<option key={tool} value={tool}>
-								{tool}
+					<>
+						<select
+							className={classes.select}
+							value={form.name}
+							disabled={!form.agent || loadingTools}
+							onChange={(e) =>
+								setForm((prev) => ({
+									...prev,
+									name: e.target.value,
+								}))
+							}
+						>
+							<option value="">
+								{loadingTools
+									? "Loading tools…"
+									: !form.agent
+										? "— Select an agent first —"
+										: "— Select a tool —"}
 							</option>
-						))}
-					</select>
+							{availableTools.map((tool) => (
+								<option key={tool} value={tool}>
+									{tool}
+								</option>
+							))}
+						</select>
+						{toolsError && (
+							<div className={classes.fieldError}>{toolsError}</div>
+						)}
+					</>
 				)}
 			</div>
 			<div className={classes.formField}>

@@ -86,4 +86,8 @@ export const useTemplateFormStyles = makeStyles({
 		color: tokens.colorNeutralForeground1,
 		cursor: "pointer",
 	},
+	fieldError: {
+		fontSize: tokens.fontSizeBase100,
+		color: tokens.colorPaletteRedForeground1,
+	},
 });
