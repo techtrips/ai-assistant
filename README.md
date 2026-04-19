@@ -1,7 +1,7 @@
 # @techtrips/ai-assistant
 
-[![version](https://img.shields.io/badge/version-0.1.6-blue.svg)](https://github.com/techtrips/agent-ui/blob/main/agent-ui-react/docs/ChangeLog.md)
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/techtrips/agent-ui/blob/main/agent-ui-react/LICENSE)
+[![version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/docs/ChangeLog.md)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/LICENSE)
 
 A React component library for building agent-based AI assistants. Provides a production-ready, adapter-driven conversational UI with streaming support, an extension system, and template rendering — all built on [Fluent UI](https://react.fluentui.dev/) and the [AG-UI protocol](https://github.com/ag-ui-protocol).
 
@@ -78,10 +78,7 @@ function App() {
 
 | Component | Description | Documentation |
 |-----------|-------------|---------------|
-| **AIAssistant** | Adapter-driven conversational AI chat UI with streaming, multi-agent support, extensions, and responsive side-panel / full-screen modes. | [AIAssistant Docs](https://github.com/techtrips/agent-ui/blob/main/agent-ui-react/docs/AIAssistant.md) |
-| **TemplateRenderer** | Renders JSON-defined `ITemplate` objects against server data. Displays structured, data-bound UI cards with support for built-in control types. | [TemplateRenderer Docs](https://github.com/techtrips/agent-ui/blob/main/agent-ui-react/docs/TemplateRenderer.md) |
-| **TemplateDesigner** | Visual drag-and-drop editor for creating and editing `ITemplate` JSON definitions. Includes property panel, live preview, JSON editing, and data source binding. | [TemplateDesigner Docs](https://github.com/techtrips/agent-ui/blob/main/agent-ui-react/docs/TemplateDesigner.md) |
-
+| **AIAssistant** | Adapter-driven conversational AI chat UI with streaming, multi-agent support, extensions, and responsive side-panel / full-screen modes. | [AIAssistant Docs](https://github.com/techtrips/ai-assistant/blob/main/docs/AIAssistant.md) |
 ---
 
 ## Adapters
@@ -102,7 +99,7 @@ const adapter = agUiAdapter({ url: agentUrl, getToken });
 const adapter = restAdapter({ url: "/api/chat", getToken });
 ```
 
-See the [AIAssistant docs](https://github.com/techtrips/agent-ui/blob/main/agent-ui-react/docs/AIAssistant.md#adapters) for full adapter API details.
+See the [AIAssistant docs](https://github.com/techtrips/ai-assistant/blob/main/docs/AIAssistant.md#adapters) for full adapter API details.
 
 ---
 
@@ -159,7 +156,7 @@ const service = new AIAssistantService({ baseUrl: apiUrl, getToken });
 
 ## Release Notes
 
-See the full [version history and changelog](https://github.com/techtrips/agent-ui/blob/main/agent-ui-react/docs/ChangeLog.md).
+See the full [version history and changelog](https://github.com/techtrips/ai-assistant/blob/main/docs/ChangeLog.md).
 
 ---
 
@@ -173,7 +170,7 @@ Contributions are welcome! Here's how you can help:
 4. **Push** to the branch (`git push origin feature/my-feature`)
 5. **Open** a Pull Request
 
-For questions or feature requests, please [open an issue](https://github.com/techtrips/agent-ui/issues) or [contact us](mailto:visit.chinmaya@gmail.com).
+For questions or feature requests, please [open an issue](https://github.com/techtrips/ai-assistant/issues) or [contact us](mailto:visit.chinmaya@gmail.com).
 
 ---
 
@@ -185,6 +182,6 @@ Developed and maintained by [Tech Trips](https://github.com/techtrips).
 
 ## License
 
-This project is licensed under the [MIT License](https://github.com/techtrips/agent-ui/blob/main/agent-ui-react/LICENSE).
+This project is licensed under the [MIT License](https://github.com/techtrips/ai-assistant/blob/main/LICENSE).
 
 Copyright © 2026 Tech Trips
