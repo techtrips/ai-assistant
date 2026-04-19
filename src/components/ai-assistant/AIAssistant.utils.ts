@@ -1,5 +1,6 @@
-import type { AIAssistantPermission, IChatMessage } from "./AIAssistant.types";
+import type { ReactNode } from "react";
 import type { IAIAssistantService } from "./AIAssistant.services";
+import type { AIAssistantPermission, IChatMessage } from "./AIAssistant.types";
 
 export const checkPermission = (
 	permissions: AIAssistantPermission[] | undefined,
@@ -78,11 +79,16 @@ export const getResolvedFromCache = (
 };
 
 /**
- * Resolves a single assistant message through the rendering pipeline:
+ * Resolves a single assistant message through the rendering pipeline.
  *
- * 1. templateId in data — fetch template from DB, return rendered HTML.
- * 2. generateDynamicUi — call OpenAI to produce HTML.
- * 3. Returns raw content — caller renders as plain text.
+ * Priority chain:
+ * 1. renderMessage callback — consumer-provided React renderer.
+ * 2. Template from DB — fetched by templateId (tool name convention).
+ * 3. generateDynamicUi — OpenAI-generated HTML.
+ * 4. Raw content — plain text fallback.
+ *
+ * Returns the resolved HTML string, or undefined if renderMessage handled
+ * it (the component should render the ReactNode directly).
  *
  * Results are cached by message ID.
  */
@@ -90,13 +96,14 @@ export const resolveMessage = (
 	message: IChatMessage,
 	service: IAIAssistantService,
 	model?: string,
+	renderMessage?: (message: IChatMessage) => ReactNode,
 ): Promise<string | undefined> => {
 	if (message.role !== "assistant") return Promise.resolve(undefined);
 
 	const existing = resolveCache.get(message.id);
 	if (existing) return existing.promise;
 
-	const promise = resolveMessageImpl(message, service, model);
+	const promise = resolveMessageImpl(message, service, model, renderMessage);
 	const entry = { promise, done: false, html: undefined as string | undefined };
 	resolveCache.set(message.id, entry);
 	promise
@@ -115,12 +122,21 @@ const resolveMessageImpl = async (
 	message: IChatMessage,
 	service: IAIAssistantService,
 	model?: string,
+	renderMessage?: (message: IChatMessage) => ReactNode,
 ): Promise<string | undefined> => {
+	// Priority 1: Consumer-provided renderMessage callback
+	// If it returns a truthy ReactNode, signal to the component to use it directly.
+	if (renderMessage?.(message)) return undefined;
 
-	// Priority 1: templateId in data — fetch DB template
+	// Priority 2: Template from DB — fetch by templateId (convention: tool name = template name)
+	// Explicit templateId takes precedence, then derive from tool call name (convention: template name = tool name)
+	const toolCalls = message.data?.toolCalls as
+		| Array<{ name?: string }>
+		| undefined;
 	const templateId =
 		(message.data?.templateId as string) ??
-		(message.data?.TemplateId as string);
+		(message.data?.TemplateId as string) ??
+		toolCalls?.[0]?.name;
 	if (templateId) {
 		try {
 			const entity = await service.getTemplateById(templateId);
@@ -132,7 +148,7 @@ const resolveMessageImpl = async (
 		}
 	}
 
-	// Priority 2: Generate dynamic HTML via OpenAI
+	// Priority 3: Generate dynamic HTML via OpenAI
 	const toolPayload = message.data
 		? extractToolPayload(message.data)
 		: undefined;
@@ -153,7 +169,7 @@ const resolveMessageImpl = async (
 		}
 	}
 
-	// Priority 3: Return raw content
+	// Priority 4: Return raw content
 	return message.content?.trim() || undefined;
 };
 
@@ -166,6 +182,7 @@ const extractToolPayload = (
 		.filter((tc) => tc.result)
 		.map((tc) => {
 			try {
+				// biome-ignore lint/style/noNonNullAssertion: guarded by filter above
 				return JSON.parse(tc.result!);
 			} catch {
 				return tc.result;

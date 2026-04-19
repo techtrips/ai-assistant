@@ -1,10 +1,10 @@
 import { SparkleRegular } from "@fluentui/react-icons";
+import { useAIAssistantContext } from "../../AIAssistantContext";
 import { useChatMessageBubbleStyles } from "./ChatMessageBubble.styles";
-import { formatTime } from "./ChatMessageBubble.utils";
 import type { IChatMessageBubbleProps } from "./ChatMessageBubble.types";
+import { formatTime } from "./ChatMessageBubble.utils";
 import { IsolatedHtmlRenderer } from "./IsolatedHtmlRenderer";
 import { useResolveMessage } from "./useResolveMessage";
-import { useAIAssistantContext } from "../../AIAssistantContext";
 
 export const ChatMessageBubble = ({
 	message,
@@ -12,12 +12,12 @@ export const ChatMessageBubble = ({
 }: IChatMessageBubbleProps) => {
 	const classes = useChatMessageBubbleStyles();
 	const { service } = useAIAssistantContext();
-	const customContent = renderMessage?.(message);
 	const { resolvedHtml, isLoading } = useResolveMessage(
 		message,
 		service,
-		!!customContent,
+		renderMessage,
 	);
+	const customContent = renderMessage?.(message);
 
 	if (message.role === "user") {
 		return (
@@ -61,7 +61,10 @@ export const ChatMessageBubble = ({
 			{customContent ? (
 				<div className={classes.assistantCard}>{customContent}</div>
 			) : isLoading ? (
-				<div className={classes.assistantBubble} style={{ width: "calc(100% - 40px)" }}>
+				<div
+					className={classes.assistantBubble}
+					style={{ width: "calc(100% - 40px)" }}
+				>
 					<div className={classes.skeletonLine} style={{ width: "100%" }} />
 					<div className={classes.skeletonLine} style={{ width: "75%" }} />
 					<div className={classes.skeletonLine} style={{ width: "50%" }} />

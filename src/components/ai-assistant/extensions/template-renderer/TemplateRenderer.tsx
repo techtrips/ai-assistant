@@ -24,7 +24,8 @@ const TemplateRendererPanel = ({ onClose }: IExtensionProps) => {
 		error,
 		searchQuery,
 		setSearchQuery,
-		availableAgents,
+		agentNames,
+		fetchToolsForAgent,
 		panelTarget,
 		saving,
 		panelError,
@@ -72,11 +73,11 @@ const TemplateRendererPanel = ({ onClose }: IExtensionProps) => {
 			<div className={classes.rowContent}>
 				<div className={classes.rowTitleRow}>
 					<span className={classes.rowTitle}>{template.name}</span>
-					{template.agents.map((agent) => (
-						<span key={agent} className={classes.agentBadge}>
-							{agent}
+					{template.agent && (
+						<span className={classes.agentBadge}>
+							{template.agent}
 						</span>
-					))}
+					)}
 				</div>
 				{template.description && (
 					<div className={classes.rowDescription}>{template.description}</div>
@@ -186,7 +187,8 @@ const TemplateRendererPanel = ({ onClose }: IExtensionProps) => {
 			{panelTarget !== null && (
 				<TemplateForm
 					target={panelTarget !== undefined ? panelTarget : null}
-					availableAgents={availableAgents}
+					agentNames={agentNames}
+					fetchToolsForAgent={fetchToolsForAgent}
 					saving={saving}
 					error={panelError}
 					onSave={handleSave}

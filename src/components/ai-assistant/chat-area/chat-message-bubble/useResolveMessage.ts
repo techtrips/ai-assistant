@@ -1,10 +1,11 @@
+import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import type { IChatMessage } from "../../AIAssistant.types";
 import type { IAIAssistantService } from "../../AIAssistant.services";
+import type { IChatMessage } from "../../AIAssistant.types";
 import {
-	resolveMessage,
-	needsResolution,
 	getResolvedFromCache,
+	needsResolution,
+	resolveMessage,
 } from "../../AIAssistant.utils";
 
 export interface IUseResolveMessageResult {
@@ -15,9 +16,9 @@ export interface IUseResolveMessageResult {
 export const useResolveMessage = (
 	message: IChatMessage,
 	service: IAIAssistantService | undefined,
-	hasCustomRenderer: boolean,
+	renderMessage?: (message: IChatMessage) => ReactNode,
 ): IUseResolveMessageResult => {
-	const skip = hasCustomRenderer || !needsResolution(message) || !service;
+	const skip = !needsResolution(message) || !service;
 
 	// Read synchronously from the module-level cache — if already resolved
 	// (e.g. StrictMode remount), we skip the loading state entirely.
@@ -33,6 +34,7 @@ export const useResolveMessage = (
 	const serviceRef = useRef(service);
 	serviceRef.current = service;
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: message tracked by message.id; renderMessage is a stable prop callback
 	useEffect(() => {
 		if (skip) return;
 
@@ -42,10 +44,11 @@ export const useResolveMessage = (
 			return;
 		}
 
+		// biome-ignore lint/style/noNonNullAssertion: guarded by skip check above
 		const svc = serviceRef.current!;
 		let disposed = false;
 
-		resolveMessage(message, svc)
+		resolveMessage(message, svc, undefined, renderMessage)
 			.then((html) => {
 				if (!disposed) setResult({ html });
 			})
@@ -56,7 +59,6 @@ export const useResolveMessage = (
 		return () => {
 			disposed = true;
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [message.id, skip]);
 
 	return { resolvedHtml: result?.html, isLoading };

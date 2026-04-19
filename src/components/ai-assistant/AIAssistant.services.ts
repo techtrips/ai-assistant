@@ -32,6 +32,8 @@ export interface IStarterPromptService {
 export interface ITemplateService {
 	getTemplates: () => Promise<IEntity<ITemplate[]>>;
 	getTemplateById: (templateId: string) => Promise<IEntity<ITemplate>>;
+	getAgentNames: () => Promise<IEntity<string[]>>;
+	getToolNames: (agent: string) => Promise<IEntity<string[]>>;
 	addTemplate: (template: ITemplate) => Promise<IEntity<ITemplate>>;
 	updateTemplate: (template: ITemplate) => Promise<IEntity<ITemplate>>;
 	deleteTemplate: (templateId: string) => Promise<IEntity<void>>;
@@ -138,6 +140,17 @@ export class AIAssistantService implements IAIAssistantService {
 		return this.fetchApi(`/templates/${templateId}`, "GET");
 	}
 
+	getToolNames(agent: string): Promise<IEntity<string[]>> {
+		return this.fetchApi(
+			`/templates/tools?agent=${encodeURIComponent(agent)}`,
+			"GET",
+		);
+	}
+
+	getAgentNames(): Promise<IEntity<string[]>> {
+		return this.fetchApi("/templates/agents", "GET");
+	}
+
 	addTemplate(template: ITemplate): Promise<IEntity<ITemplate>> {
 		return this.fetchApi("/templates", "POST", template);
 	}
@@ -165,6 +178,7 @@ export class AIAssistantService implements IAIAssistantService {
 				serializedMessage?: string;
 				role: string;
 				timestamp: string;
+				templateId?: string;
 			}[]
 		>(`/conversations/${threadId}/messages`, "GET");
 		if (result.error || !result.data)
@@ -241,6 +255,11 @@ export class AIAssistantService implements IAIAssistantService {
 			if (allToolCalls.length > 0) {
 				data = { toolCalls: allToolCalls };
 				pendingToolCalls.clear();
+			}
+
+			// Carry templateId from stored message into data
+			if (m.templateId) {
+				data = { ...data, templateId: m.templateId };
 			}
 
 			messages.push({

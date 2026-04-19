@@ -26,27 +26,36 @@ export const useTemplateRenderer = () => {
 	const [deleting, setDeleting] = useState(false);
 	const [deleteError, setDeleteError] = useState("");
 
-	const availableAgents = useMemo(() => {
-		const names = new Set<string>();
-		for (const t of templates) {
-			for (const a of t.agents) {
-				if (a.trim()) names.add(a.trim());
-			}
-		}
-		return Array.from(names);
-	}, [templates]);
+	const [agentNames, setAgentNames] = useState<string[]>([]);
 
 	useEffect(() => {
 		if (!service) {
 			setLoading(false);
 			return;
 		}
-		service.getTemplates().then((result) => {
-			if (result.data) setTemplates(result.data);
-			if (result.error) setError(result.error);
+		Promise.all([
+			service.getTemplates(),
+			service.getAgentNames(),
+		]).then(([templateResult, agentResult]) => {
+			if (templateResult.data) setTemplates(templateResult.data);
+			if (templateResult.error) setError(templateResult.error);
+			if (agentResult.data) setAgentNames(agentResult.data);
 			setLoading(false);
 		});
 	}, [service]);
+
+	const fetchToolsForAgent = useCallback(
+		async (agent: string): Promise<string[]> => {
+			if (!service) return [];
+			const result = await service.getToolNames(agent);
+			if (result.data) {
+				const usedNames = new Set(templates.map((t) => t.name));
+				return result.data.filter((name) => !usedNames.has(name));
+			}
+			return [];
+		},
+		[service, templates],
+	);
 
 	const filtered = useMemo(() => {
 		if (!searchQuery.trim()) return templates;
@@ -55,7 +64,7 @@ export const useTemplateRenderer = () => {
 			(t) =>
 				t.name.toLowerCase().includes(q) ||
 				(t.description?.toLowerCase().includes(q) ?? false) ||
-				t.agents.some((a) => a.toLowerCase().includes(q)),
+				(t.agent?.toLowerCase().includes(q) ?? false),
 		);
 	}, [templates, searchQuery]);
 
@@ -136,7 +145,8 @@ export const useTemplateRenderer = () => {
 		error,
 		searchQuery,
 		setSearchQuery,
-		availableAgents,
+		agentNames,
+		fetchToolsForAgent,
 		panelTarget,
 		saving,
 		panelError,

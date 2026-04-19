@@ -22,7 +22,7 @@ export interface ITemplate {
 	description?: string;
 	content?: string;
 	data?: string;
-	agents: string[];
+	agent: string;
 	createdAt?: string;
 	updatedAt?: string;
 	isStoredInDB?: boolean;

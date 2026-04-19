@@ -6,7 +6,8 @@ import { useTemplateFormStyles } from "./TemplateForm.styles";
 
 interface TemplateFormProps {
 	target: ITemplate | null;
-	availableAgents: string[];
+	agentNames: string[];
+	fetchToolsForAgent: (agent: string) => Promise<string[]>;
 	saving: boolean;
 	error: string;
 	onSave: (t: ITemplate) => Promise<void>;
@@ -16,12 +17,13 @@ interface TemplateFormProps {
 interface FormState {
 	name: string;
 	description: string;
-	agents: string[];
+	agent: string;
 }
 
 export const TemplateForm = ({
 	target,
-	availableAgents,
+	agentNames,
+	fetchToolsForAgent,
 	saving,
 	error,
 	onSave,
@@ -31,31 +33,37 @@ export const TemplateForm = ({
 	const [form, setForm] = useState<FormState>({
 		name: "",
 		description: "",
-		agents: [],
+		agent: "",
 	});
+	const [availableTools, setAvailableTools] = useState<string[]>([]);
+	const [loadingTools, setLoadingTools] = useState(false);
 
 	useEffect(() => {
 		if (target) {
 			setForm({
 				name: target.name,
 				description: target.description ?? "",
-				agents: target.agents ?? [],
+				agent: target.agent ?? "",
 			});
 		} else {
-			setForm({ name: "", description: "", agents: [] });
+			setForm({ name: "", description: "", agent: "" });
+			setAvailableTools([]);
 		}
 	}, [target]);
 
-	const isValid = form.name.trim().length > 0;
-
-	const toggleAgent = (agent: string) => {
-		setForm((prev) => ({
-			...prev,
-			agents: prev.agents.includes(agent)
-				? prev.agents.filter((a) => a !== agent)
-				: [...prev.agents, agent],
-		}));
+	const handleAgentChange = async (agent: string) => {
+		setForm((prev) => ({ ...prev, agent, name: "" }));
+		if (!agent) {
+			setAvailableTools([]);
+			return;
+		}
+		setLoadingTools(true);
+		const tools = await fetchToolsForAgent(agent);
+		setAvailableTools(tools);
+		setLoadingTools(false);
 	};
+
+	const isValid = form.name.trim().length > 0 && form.agent.trim().length > 0;
 
 	const handleSubmit = async () => {
 		if (!isValid) return;
@@ -63,7 +71,7 @@ export const TemplateForm = ({
 			...target,
 			name: form.name.trim(),
 			description: form.description.trim() || undefined,
-			agents: form.agents,
+			agent: form.agent.trim(),
 		});
 	};
 
@@ -82,21 +90,68 @@ export const TemplateForm = ({
 			onClose={onClose}
 		>
 			<div className={classes.formField}>
-				<div className={classes.fieldTitle}>Name</div>
+				<div className={classes.fieldTitle}>Agent</div>
 				<div className={classes.fieldDescription}>
-					A unique name for this template
+					Select the agent this template belongs to
 				</div>
-				<input
-					className={classes.input}
-					placeholder="My Template"
-					value={form.name}
-					onChange={(e) =>
-						setForm((prev) => ({
-							...prev,
-							name: e.target.value,
-						}))
-					}
-				/>
+				{target ? (
+					<input
+						className={classes.input}
+						value={form.agent}
+						disabled
+					/>
+				) : (
+					<select
+						className={classes.input}
+						value={form.agent}
+						onChange={(e) => handleAgentChange(e.target.value)}
+					>
+						<option value="">— Select an agent —</option>
+						{agentNames.map((name) => (
+							<option key={name} value={name}>
+								{name}
+							</option>
+						))}
+					</select>
+				)}
+			</div>
+			<div className={classes.formField}>
+				<div className={classes.fieldTitle}>Tool</div>
+				<div className={classes.fieldDescription}>
+					Select the agent tool this template renders
+				</div>
+				{target ? (
+					<input
+						className={classes.input}
+						value={form.name}
+						disabled
+					/>
+				) : (
+					<select
+						className={classes.input}
+						value={form.name}
+						disabled={!form.agent || loadingTools}
+						onChange={(e) =>
+							setForm((prev) => ({
+								...prev,
+								name: e.target.value,
+							}))
+						}
+					>
+						<option value="">
+							{loadingTools
+								? "Loading tools…"
+								: !form.agent
+									? "— Select an agent first —"
+									: "— Select a tool —"}
+						</option>
+						{availableTools.map((tool) => (
+							<option key={tool} value={tool}>
+								{tool}
+							</option>
+						))}
+					</select>
+				)}
 			</div>
 			<div className={classes.formField}>
 				<div className={classes.fieldTitle}>Description</div>
@@ -116,26 +171,6 @@ export const TemplateForm = ({
 					}
 				/>
 			</div>
-			{availableAgents.length > 0 && (
-				<div className={classes.formField}>
-					<div className={classes.fieldTitle}>Agents</div>
-					<div className={classes.fieldDescription}>
-						Select which agents can use this template
-					</div>
-					<div className={classes.agentCheckboxes}>
-						{availableAgents.map((agent) => (
-							<label key={agent} className={classes.agentCheckbox}>
-								<input
-									type="checkbox"
-									checked={form.agents.includes(agent)}
-									onChange={() => toggleAgent(agent)}
-								/>
-								{agent}
-							</label>
-						))}
-					</div>
-				</div>
-			)}
 		</SlidePanel>
 	);
 };
