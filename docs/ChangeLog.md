@@ -1,6 +1,6 @@
 # Release Notes
 
-All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.4/) and the project uses [Semantic Versioning](https://semver.org/).
+All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.6/) and the project uses [Semantic Versioning](https://semver.org/).
 
 ---
 
@@ -8,7 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| [0.1.6](#016--2026-04-20) | 2026-04-20 | - |
+| [0.1.6](#016--2026-04-20) | 2026-04-20 | Generic adapter data mapping, typed IChatMessageData, resolution pipeline fixes |
 | [0.1.5](#015--2026-04-19) | 2026-04-19 | Context filter fallback to all prompts |
 | [0.1.4](#014--2026-04-19) | 2026-04-19 | Context-aware starter prompts, order field fix |
 | [0.1.3](#013--2026-04-19) | 2026-04-19 | TemplateForm error handling, removed unused export, updated keywords |
@@ -23,15 +23,24 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 ### Added
 
-- _Update this section before publishing_
+- **`mapData` callback on `agUiAdapter`** — configurable transform from AG-UI tool call results to the library's canonical `IChatMessageData`. Default: tool results → `payload`, first tool name → `templateId`. Override for agents with different conventions.
+- **`mapData` callback on `restAdapter`** — configurable transform from raw REST JSON response to `IChatMessageData`. Default: looks for `data`/`payload` and `templateId`/`template` fields.
+- **`defaultMapData` export** — the built-in AG-UI data mapper, exported so consumers can extend rather than rewrite.
+- **`IToolCallInfo` type** — protocol-neutral tool call shape (`id`, `name`, `args?`, `result?`) surfaced to `mapData` callbacks.
+- **`MapDataFn` type** — callback signature for data mapping.
 
 ### Changed
 
-- _Update this section before publishing_
+- **`IChatMessageData`** — fixed model with `payload?: string` and `templateId?: string`. All agent data is transformed into this shape at the adapter boundary.
+- **`IChatMessage.content`** — now optional. Tool-only messages may not have text.
+- **Adapter architecture** — adapters are now the transform layer. The library's internal model is agent-agnostic; adapters handle agent-specific data mapping via `mapData`.
+- **Resolution pipeline** — `resolveMessageImpl` catch blocks now log with `console.error` instead of silently swallowing errors.
 
 ### Fixed
 
-- _Update this section before publishing_
+- **Duplicate messages in conversation history** — turn-based merge in API groups consecutive assistant/tool rows.
+- **History messages not resolving to templates** — API now falls back to text content as `payload` when tool results are absent but `templateId` exists.
+- **Message ordering** — secondary sort by role when timestamps are identical (user before assistant).
 
 ---
 
