@@ -2,6 +2,7 @@ import { HttpAgent } from "@ag-ui/client";
 import type { AgentSubscriber } from "@ag-ui/client";
 import type { RunAgentInput, Message } from "@ag-ui/core";
 import type { IChatAdapter, ChatEvent, ISendMessageRequest } from "./types";
+import type { IChatMessageData } from "../AIAssistant.types";
 
 interface AgUiAdapterOptions {
 	url: string;
@@ -75,12 +76,7 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 			let streamedText = "";
 			const toolCalls = new Map<
 				string,
-				{
-					id: string;
-					name: string;
-					args?: string;
-					result?: string;
-				}
+				{ id: string; name: string; args?: string; result?: string }
 			>();
 
 			const subscriber: AgentSubscriber = {
@@ -130,9 +126,31 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 				);
 			}
 
-			const buildData = (): Record<string, unknown> | undefined => {
+			const buildData = (): IChatMessageData | undefined => {
 				if (toolCalls.size === 0) return undefined;
-				return { toolCalls: [...toolCalls.values()] };
+				const calls = [...toolCalls.values()];
+				// Compute payload from tool results at source
+				const results = calls
+					.filter((tc) => tc.result)
+					.map((tc) => {
+						try {
+							// biome-ignore lint/style/noNonNullAssertion: guarded by filter
+							return JSON.parse(tc.result!);
+						} catch {
+							return tc.result;
+						}
+					});
+				let payload: string | undefined;
+				if (results.length > 0) {
+					const p = results.length === 1 ? results[0] : results;
+					payload = typeof p === "string" ? p : JSON.stringify(p);
+				}
+				// Use first tool name as templateId (convention: tool name = template name)
+				const templateId = calls[0]?.name || undefined;
+				return {
+					...(payload && { payload }),
+					...(templateId && { templateId }),
+				};
 			};
 
 			// Run agent in background, push events via subscriber
@@ -158,11 +176,12 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 					}
 				})
 				.finally(() => {
-					if (streamedText) {
+					const data = buildData();
+					if (streamedText || data) {
 						push({
 							type: "text-done",
-							content: streamedText,
-							data: buildData(),
+							content: streamedText || undefined,
+							data,
 						});
 					}
 					finished = true;

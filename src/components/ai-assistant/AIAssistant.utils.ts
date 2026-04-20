@@ -10,11 +10,27 @@ export const checkPermission = (
 	permission: AIAssistantPermission,
 ): boolean => permissions?.includes(permission) ?? false;
 
-export const buildSystemPrompt = (theme: "light" | "dark" = "light"): string => {
+export const buildSystemPrompt = (
+	theme: "light" | "dark" = "light",
+): string => {
 	const colors =
 		theme === "dark"
-			? { bg: "#1e1e1e", text: "#e0e0e0", accent: "#4ea8f0", muted: "#a0a0a0", surface: "#2d2d2d", border: "#404040" }
-			: { bg: "#ffffff", text: "#333333", accent: "#0078d4", muted: "#6b6b6b", surface: "#f5f5f5", border: "#e0e0e0" };
+			? {
+					bg: "#1e1e1e",
+					text: "#e0e0e0",
+					accent: "#4ea8f0",
+					muted: "#a0a0a0",
+					surface: "#2d2d2d",
+					border: "#404040",
+				}
+			: {
+					bg: "#ffffff",
+					text: "#333333",
+					accent: "#0078d4",
+					muted: "#6b6b6b",
+					surface: "#f5f5f5",
+					border: "#e0e0e0",
+				};
 
 	return `You are a UI generator. You receive data from an AI agent and produce a single, concise HTML page.
 
@@ -59,19 +75,13 @@ export const normalizeGeneratedHtml = (raw: string): string => {
 
 /**
  * Returns true when the message should go through the rendering pipeline.
- * Assistant messages with tool call data or an explicit templateId qualify.
- * Plain text assistant responses render as text bubbles without resolution.
+ * Checks for pre-computed payload or templateId — both set at source.
  */
 export const needsResolution = (message: IChatMessage): boolean => {
 	if (message.role !== "assistant") return false;
 	const data = message.data;
 	if (!data) return false;
-	// Trigger resolution if there are any tool calls or an explicit templateId
-	const toolCalls = data.toolCalls as Array<unknown> | undefined;
-	if (toolCalls?.length) return true;
-	const templateId =
-		(data.templateId as string) ?? (data.TemplateId as string);
-	return !!templateId;
+	return !!(data.payload || data.templateId);
 };
 
 /**
@@ -158,13 +168,7 @@ const resolveMessageImpl = async (
 ): Promise<string | undefined> => {
 	// Priority 1: Template from DB — fetch by templateId (convention: tool name = template name)
 	if (settings?.enableTemplateResolution !== false) {
-		const toolCalls = message.data?.toolCalls as
-			| Array<{ name?: string; result?: string }>
-			| undefined;
-		const templateId =
-			(message.data?.templateId as string) ??
-			(message.data?.TemplateId as string) ??
-			toolCalls?.[0]?.name;
+		const templateId = message.data?.templateId;
 		if (templateId) {
 			try {
 				const entity = await service.getTemplateById(templateId);
@@ -179,10 +183,7 @@ const resolveMessageImpl = async (
 
 	// Priority 2: Generate dynamic HTML via OpenAI
 	if (settings?.enableDynamicUi !== false) {
-		const toolPayload = message.data
-			? extractToolPayload(message.data)
-			: undefined;
-		const dataStr = toolPayload ? JSON.stringify(toolPayload) : undefined;
+		const dataStr = message.data?.payload;
 
 		if (dataStr) {
 			const prompt = buildSystemPrompt(theme);
@@ -198,47 +199,6 @@ const resolveMessageImpl = async (
 		}
 	}
 
-	// Priority 3: No resolution available — component will show message.content or raw data
-	return undefined;
-};
-
-export const extractToolPayload = (
-	data: Record<string, unknown>,
-): unknown | undefined => {
-	const toolCalls = data.toolCalls as
-		| Array<{ name?: string; args?: string; result?: string }>
-		| undefined;
-	if (!toolCalls?.length) return undefined;
-
-	// Prefer results, but fall back to args if no results available
-	const results = toolCalls
-		.filter((tc) => tc.result)
-		.map((tc) => {
-			try {
-				// biome-ignore lint/style/noNonNullAssertion: guarded by filter above
-				return JSON.parse(tc.result!);
-			} catch {
-				return tc.result;
-			}
-		});
-	if (results.length > 0) {
-		return results.length === 1 ? results[0] : results;
-	}
-
-	// Fall back to args if no results
-	const args = toolCalls
-		.filter((tc) => tc.args)
-		.map((tc) => {
-			try {
-				// biome-ignore lint/style/noNonNullAssertion: guarded by filter above
-				return JSON.parse(tc.args!);
-			} catch {
-				return tc.args;
-			}
-		});
-	if (args.length > 0) {
-		return args.length === 1 ? args[0] : args;
-	}
-
+	// Priority 3: No resolution — component shows content as text or payload as raw data
 	return undefined;
 };

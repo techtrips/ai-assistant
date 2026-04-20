@@ -3,9 +3,11 @@
  * for any AI backend (AG-UI, REST, WebSocket, etc.).
  */
 
+import type { IChatMessageData } from "../AIAssistant.types";
+
 export type ChatEvent =
 	| { type: "text-delta"; content: string }
-	| { type: "text-done"; content: string; data?: Record<string, unknown> }
+	| { type: "text-done"; content?: string; data?: IChatMessageData }
 	| { type: "error"; message: string };
 
 export interface ISendMessageRequest {

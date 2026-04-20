@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { IChatAdapter } from "./adapters/types";
-import type { IChatMessage } from "./AIAssistant.types";
+import type { IChatMessage, IChatMessageData } from "./AIAssistant.types";
 
 const nextId = () =>
 	`msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -57,7 +57,7 @@ export const useChatState = (adapter: IChatAdapter): IUseChatStateResult => {
 			(async () => {
 				let fullText = "";
 				let hadError = false;
-				let messageData: Record<string, unknown> | undefined;
+				let messageData: IChatMessageData | undefined;
 
 				try {
 					const stream = adapter.sendMessage({
@@ -115,13 +115,13 @@ export const useChatState = (adapter: IChatAdapter): IUseChatStateResult => {
 					}
 				}
 
-				if (!hadError && fullText) {
+				if (!hadError && (fullText || messageData)) {
 					setMessages((prev) => [
 						...prev,
 						{
 							id: messageId,
 							role: "assistant",
-							content: fullText,
+							content: fullText || undefined,
 							timestamp: new Date().toISOString(),
 							data: messageData,
 						},

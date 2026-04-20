@@ -6,6 +6,7 @@ export type {
 	IAIAssistantProps as AIAssistantProps,
 	IAIAssistantSettings,
 	IChatMessage as ChatMessage,
+	IChatMessageData as ChatMessageData,
 } from "./AIAssistant.types";
 export { AIAssistantPermission, DEFAULT_SETTINGS } from "./AIAssistant.types";
 export { checkPermission } from "./AIAssistant.utils";

@@ -1,6 +1,6 @@
 import { SparkleRegular } from "@fluentui/react-icons";
 import { useAIAssistantContext } from "../../AIAssistantContext";
-import { extractToolPayload } from "../../AIAssistant.utils";
+import type { IChatMessage } from "../../AIAssistant.types";
 import { useChatMessageBubbleStyles } from "./ChatMessageBubble.styles";
 import type { IChatMessageBubbleProps } from "./ChatMessageBubble.types";
 import { formatTime } from "./ChatMessageBubble.utils";
@@ -20,12 +20,14 @@ export const ChatMessageBubble = ({
 		settings,
 	);
 
-	// Only offer renderMessage for assistant messages with agent data (tool calls).
-	// If renderMessage returns null/undefined/false, fall through to the resolution pipeline.
-	const hasAgentData = message.role === "assistant" && !!message.data?.toolCalls;
-	const renderResult = hasAgentData ? renderMessage?.(message) : undefined;
+	// Only offer renderMessage for assistant messages that carry a normalized payload.
+	// Payload is pre-computed at entry points (adapter / history load) — no parsing here.
+	const hasPayload = message.role === "assistant" && !!message.data?.payload;
+	const renderResult = hasPayload ? renderMessage?.(message) : undefined;
 	const customContent =
-		renderResult !== null && renderResult !== undefined && renderResult !== false
+		renderResult !== null &&
+		renderResult !== undefined &&
+		renderResult !== false
 			? renderResult
 			: undefined;
 
@@ -55,10 +57,7 @@ export const ChatMessageBubble = ({
 		);
 	}
 
-	const resolvedHtmlFromData = message.data?.__resolvedHtml as
-		| string
-		| undefined;
-	const html = resolvedHtml ?? resolvedHtmlFromData;
+	const html = resolvedHtml;
 
 	return (
 		<div className={classes.assistantBlock}>
@@ -85,30 +84,23 @@ export const ChatMessageBubble = ({
 				</div>
 			) : (
 				<div className={classes.assistantBubble}>
-					{message.content || (
-						<RawDataFallback data={message.data} />
-					)}
+					{message.content || <RawDataFallback message={message} />}
 				</div>
 			)}
 		</div>
 	);
 };
 
-const RawDataFallback = ({ data }: { data?: Record<string, unknown> }) => {
-	if (!data) return null;
-	const payload = extractToolPayload(data);
+const RawDataFallback = ({ message }: { message: IChatMessage }) => {
+	const payload = message.data?.payload;
 	if (!payload) return null;
 	const classes = useChatMessageBubbleStyles();
-	const json =
-		typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
 	return (
 		<div>
 			<p className={classes.rawDataLabel}>
 				No template available. Showing raw data:
 			</p>
-			<pre className={classes.rawDataPre}>
-				{json}
-			</pre>
+			<pre className={classes.rawDataPre}>{payload}</pre>
 		</div>
 	);
 };

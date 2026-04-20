@@ -69,12 +69,20 @@ export const DEFAULT_SETTINGS: IAIAssistantSettings = {
 	visibleAgents: [],
 };
 
+export interface IChatMessageData {
+	/** Serialized data string for rendering (from tool results or agent response). */
+	payload?: string;
+	/** Template identifier for DB-based rendering. */
+	templateId?: string;
+}
+
 export interface IChatMessage {
 	id: string;
 	role: "user" | "assistant" | "error";
-	content: string;
+	/** Agent's text response. Optional — tool-only messages may not have text. */
+	content?: string;
 	timestamp: string;
-	data?: Record<string, unknown>;
+	data?: IChatMessageData;
 }
 
 export interface IAIAssistantContext {
