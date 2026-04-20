@@ -175,8 +175,8 @@ const resolveMessageImpl = async (
 				if (entity.data?.content) {
 					return entity.data.content;
 				}
-			} catch {
-				/* fall through */
+			} catch (err) {
+				console.error("[ai-assistant] Template lookup failed:", templateId, err);
 			}
 		}
 	}
@@ -193,8 +193,8 @@ const resolveMessageImpl = async (
 					const normalized = normalizeGeneratedHtml(raw);
 					if (normalized) return normalized;
 				}
-			} catch {
-				/* fall through */
+			} catch (err) {
+				console.error("[ai-assistant] Dynamic UI generation failed:", err);
 			}
 		}
 	}
