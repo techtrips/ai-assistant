@@ -12,12 +12,14 @@ export { AIAssistantPermission, DEFAULT_SETTINGS } from "./AIAssistant.types";
 export { checkPermission } from "./AIAssistant.utils";
 export type { IAIAssistantContextValue as AIAssistantContextValue } from "./AIAssistantContext";
 export { useAIAssistantContext } from "./AIAssistantContext";
-export { agUiAdapter } from "./adapters/agUiAdapter";
+export { agUiAdapter, defaultMapData } from "./adapters/agUiAdapter";
 export { restAdapter } from "./adapters/restAdapter";
 export type {
 	ChatEvent,
 	IChatAdapter as ChatAdapter,
 	ISendMessageRequest as SendMessageRequest,
+	IToolCallInfo as ToolCallInfo,
+	MapDataFn,
 } from "./adapters/types";
 export { ConversationHistory } from "./extensions/conversation-history";
 export { Settings } from "./extensions/settings";

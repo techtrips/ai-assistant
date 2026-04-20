@@ -1,10 +1,17 @@
 import type { IChatAdapter, ChatEvent, ISendMessageRequest } from "./types";
+import type { IChatMessageData } from "../AIAssistant.types";
 
 interface RestAdapterOptions {
 	url: string;
 	getToken?: () => Promise<string>;
 	/** Map the API JSON response to the assistant's text. Default: `(json) => json.text ?? json.message ?? JSON.stringify(json)` */
 	extractText?: (json: unknown) => string;
+	/**
+	 * Transform the raw API JSON response into the library's canonical data model.
+	 * Return undefined to skip structured data (text-only response).
+	 * Default: no data mapping — response is treated as text only.
+	 */
+	mapData?: (json: unknown) => IChatMessageData | undefined;
 }
 
 const defaultExtractText = (json: unknown): string => {
@@ -67,7 +74,8 @@ export const restAdapter = (options: RestAdapterOptions): IChatAdapter => {
 
 				const json = await response.json();
 				const text = extractText(json);
-				yield { type: "text-done", content: text };
+				const data = options.mapData?.(json);
+				yield { type: "text-done", content: text, data };
 			} catch (err: unknown) {
 				if (err instanceof Error && err.name === "AbortError") return;
 				yield {

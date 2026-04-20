@@ -1,12 +1,24 @@
 import { HttpAgent } from "@ag-ui/client";
 import type { AgentSubscriber } from "@ag-ui/client";
 import type { RunAgentInput, Message } from "@ag-ui/core";
-import type { IChatAdapter, ChatEvent, ISendMessageRequest } from "./types";
+import type {
+	IChatAdapter,
+	ChatEvent,
+	ISendMessageRequest,
+	IToolCallInfo,
+	MapDataFn,
+} from "./types";
 import type { IChatMessageData } from "../AIAssistant.types";
 
 interface AgUiAdapterOptions {
 	url: string;
 	getToken: () => Promise<string>;
+	/**
+	 * Transform raw tool call results into the library's canonical data model.
+	 * Default: tool results → payload (stringified), first tool name → templateId.
+	 * Override this for agents whose conventions differ.
+	 */
+	mapData?: MapDataFn;
 }
 
 /**
@@ -24,6 +36,33 @@ class ExtendedHttpAgent extends HttpAgent {
 		return { ...base, body: JSON.stringify(body) };
 	}
 }
+
+/**
+ * Default data mapper: tool results → payload (stringified), first tool name → templateId.
+ * Works for agents that follow the convention of tool name = template name.
+ */
+export const defaultMapData: MapDataFn = (toolCalls) => {
+	const results = toolCalls
+		.filter((tc) => tc.result)
+		.map((tc) => {
+			try {
+				// biome-ignore lint/style/noNonNullAssertion: guarded by filter
+				return JSON.parse(tc.result!);
+			} catch {
+				return tc.result;
+			}
+		});
+	let payload: string | undefined;
+	if (results.length > 0) {
+		const p = results.length === 1 ? results[0] : results;
+		payload = typeof p === "string" ? p : JSON.stringify(p);
+	}
+	const templateId = toolCalls[0]?.name || undefined;
+	return {
+		...(payload && { payload }),
+		...(templateId && { templateId }),
+	};
+};
 
 /**
  * Creates a ChatAdapter backed by the AG-UI protocol.
@@ -74,10 +113,9 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 
 			let textEndReceived = false;
 			let streamedText = "";
-			const toolCalls = new Map<
-				string,
-				{ id: string; name: string; args?: string; result?: string }
-			>();
+			const toolCalls = new Map<string, IToolCallInfo>();
+
+			const mapData = options.mapData ?? defaultMapData;
 
 			const subscriber: AgentSubscriber = {
 				onTextMessageStartEvent: () => {},
@@ -128,29 +166,7 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 
 			const buildData = (): IChatMessageData | undefined => {
 				if (toolCalls.size === 0) return undefined;
-				const calls = [...toolCalls.values()];
-				// Compute payload from tool results at source
-				const results = calls
-					.filter((tc) => tc.result)
-					.map((tc) => {
-						try {
-							// biome-ignore lint/style/noNonNullAssertion: guarded by filter
-							return JSON.parse(tc.result!);
-						} catch {
-							return tc.result;
-						}
-					});
-				let payload: string | undefined;
-				if (results.length > 0) {
-					const p = results.length === 1 ? results[0] : results;
-					payload = typeof p === "string" ? p : JSON.stringify(p);
-				}
-				// Use first tool name as templateId (convention: tool name = template name)
-				const templateId = calls[0]?.name || undefined;
-				return {
-					...(payload && { payload }),
-					...(templateId && { templateId }),
-				};
+				return mapData([...toolCalls.values()]);
 			};
 
 			// Run agent in background, push events via subscriber
