@@ -20,10 +20,10 @@ export const ChatMessageBubble = ({
 		settings,
 	);
 
-	// Only offer renderMessage for assistant messages that carry a normalized payload.
-	// Payload is pre-computed at entry points (adapter / history load) — no parsing here.
-	const hasPayload = message.role === "assistant" && !!message.data?.payload;
-	const renderResult = hasPayload ? renderMessage?.(message) : undefined;
+	// Offer renderMessage for assistant messages that carry structured data.
+	// Data is pre-computed at entry points (adapter / history load) — no parsing here.
+	const hasData = message.role === "assistant" && !!message.data;
+	const renderResult = hasData ? renderMessage?.(message) : undefined;
 	const customContent =
 		renderResult !== null &&
 		renderResult !== undefined &&
