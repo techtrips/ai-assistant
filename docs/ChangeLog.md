@@ -1,6 +1,6 @@
 # Release Notes
 
-All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.6/) and the project uses [Semantic Versioning](https://semver.org/).
+All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.7/) and the project uses [Semantic Versioning](https://semver.org/).
 
 ---
 
@@ -8,7 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| [0.1.7](#017--2026-04-20) | 2026-04-20 | - |
+| [0.1.7](#017--2026-04-20) | 2026-04-20 | `renderMessage` gated on `data` presence instead of `payload` |
 | [0.1.6](#016--2026-04-20) | 2026-04-20 | Generic adapter data mapping, typed IChatMessageData, resolution pipeline fixes |
 | [0.1.5](#015--2026-04-19) | 2026-04-19 | Context filter fallback to all prompts |
 | [0.1.4](#014--2026-04-19) | 2026-04-19 | Context-aware starter prompts, order field fix |
@@ -22,17 +22,9 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 ## [0.1.7] — 2026-04-20
 
-### Added
-
-- _Update this section before publishing_
-
-### Changed
-
-- _Update this section before publishing_
-
 ### Fixed
 
-- _Update this section before publishing_
+- **`renderMessage` not called for history messages** — the callback was gated on `message.data?.payload` being truthy. Messages with only `templateId` (no `payload`) were skipped. Now gated on `message.data` presence, letting the consumer decide what to render.
 
 ---
 
