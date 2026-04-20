@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [0.1.6](#016--2026-04-20) | 2026-04-20 | - |
 | [0.1.5](#015--2026-04-19) | 2026-04-19 | Context filter fallback to all prompts |
 | [0.1.4](#014--2026-04-19) | 2026-04-19 | Context-aware starter prompts, order field fix |
 | [0.1.3](#013--2026-04-19) | 2026-04-19 | TemplateForm error handling, removed unused export, updated keywords |
@@ -15,6 +16,22 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+
+## [0.1.6] — 2026-04-20
+
+### Added
+
+- _Update this section before publishing_
+
+### Changed
+
+- _Update this section before publishing_
+
+### Fixed
+
+- _Update this section before publishing_
 
 ---
 
