@@ -29,6 +29,8 @@ The `AIAssistant` component uses an **adapter pattern** — all AI backends are 
 
 `AIAssistant.tsx` is **JSX-only** — all state and logic lives in the `useAIAssistant` hook.
 
+**Message rendering pipeline**: Pluggable `IMessageRenderer[]` chain. Built-in renderers: `templateRenderer` (DB lookup), `adaptiveCardRenderer` (Adaptive Card SDK), `dynamicUiRenderer` (LLM HTML). Custom renderers always run first. Controlled by `enabledRenderers` in `IAIAssistantSettings`.
+
 Extensions (ConversationHistory, StarterPrompts, TemplateRenderer, Settings) self-register into the sidebar via `extensionMeta`. Gated by `AIAssistantPermission`.
 
 `IAIAssistantService` provides CRUD for conversations, prompts, templates, settings, and agent names.

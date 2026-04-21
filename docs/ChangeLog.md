@@ -1,6 +1,6 @@
 # Release Notes
 
-All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/0.1.7/) and the project uses [Semantic Versioning](https://semver.org/).
+All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
 ---
 
@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.0.0](#100--2026-04-21) | 2026-04-21 | Pluggable message rendering pipeline, Adaptive Card renderer, unified settings, `chatAdapter` prop rename |
 | [0.1.7](#017--2026-04-20) | 2026-04-20 | `renderMessage` gated on `data` presence instead of `payload` |
 | [0.1.6](#016--2026-04-20) | 2026-04-20 | Generic adapter data mapping, typed IChatMessageData, resolution pipeline fixes |
 | [0.1.5](#015--2026-04-19) | 2026-04-19 | Context filter fallback to all prompts |
@@ -17,6 +18,47 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+
+## [1.0.0] — 2026-04-21
+
+### Added
+
+- **Pluggable message rendering pipeline** — new `IMessageRenderer` interface with `type` and `render(ctx)` method. Messages with `data.payload` or `data.templateId` are routed through a chain of renderers. The first to return a non-`undefined` result wins.
+- **`MessageRendererType` enum** — `Template`, `AdaptiveCard`, `DynamicUi`, `Custom`. Custom renderers always run first regardless of array position.
+- **`templateRenderer`** — built-in renderer that fetches templates by `templateId` from the DB via `IAIAssistantService`.
+- **`adaptiveCardRenderer`** — built-in renderer using the Adaptive Card SDK for deterministic, zero-LLM-cost rendering of `payload` data. Smart layout selection based on data shape (cards, tables, metrics).
+- **`dynamicUiRenderer`** — built-in renderer that sends `payload` to the LLM to generate themed HTML UI. Disabled by default.
+- **`createAdaptiveCardRenderer(adapter?)`** — factory for custom Adaptive Card renderers with overridable host config, layout, and post-processing via `IAdaptiveCardAdapter`.
+- **`IAdaptiveCardAdapter` interface** — `buildHostConfig(theme)`, `dataToCardBody(data)`, `postProcess(root, cardJson)` for full control over AC rendering.
+- **`defaultAdaptiveCardAdapter` export** — the built-in adapter, so consumers can extend rather than rewrite.
+- **`defaultMessageRenderers` export** — the default pipeline: `[templateRenderer, adaptiveCardRenderer, dynamicUiRenderer]`.
+- **`IRenderContext` type** — context passed to renderers: `message`, `service`, `theme`, `settings`, `model`.
+- **`RenderResult` type** — `string | React.ReactNode | undefined`.
+- **`messageRenderers` prop** on `AIAssistantProps` — pass only the renderers you want. If omitted, defaults apply (filtered by settings).
+- **`enabledRenderers` on `IAIAssistantSettings`** — `Record<string, boolean>` keyed by `MessageRendererType`. Controls which built-in renderers are active. Custom renderers cannot be disabled.
+- **`DEFAULT_ENABLED_RENDERERS` export** — `{ template: true, adaptiveCard: true, dynamicUi: false }`.
+- **`DEFAULT_SETTINGS` export** — full default settings object.
+- **Settings extension renderer toggles** — per-renderer toggle switches for Template, Adaptive Card, and Dynamic UI in the Settings sidebar, with descriptions.
+- **`buildRendererChain()`** — internal utility that merges consumer renderers with settings: Custom always first, built-ins gated by `enabledRenderers`.
+
+### Changed
+
+- **BREAKING: `adapter` prop renamed to `chatAdapter`** — the main `IAIAssistantProps` prop for the chat adapter is now `chatAdapter` (was `adapter`).
+- **BREAKING: `renderMessage` prop removed** — replaced by the `messageRenderers` pipeline. Consumers should migrate to custom `IMessageRenderer` implementations.
+- **BREAKING: `IChatMessage.data` type changed** — now typed as `IChatMessageData` (`{ payload?: string, templateId?: string }`) instead of `Record<string, unknown>`.
+- **BREAKING: `IChatMessage.content` is optional** — tool-only messages may not have text content.
+- **`ChatEvent.text-done`** — `data` field is now typed as `IChatMessageData` instead of `Record<string, unknown>`. `content` is optional.
+- **Settings merge** — `enabledRenderers` replaces the old individual booleans (`enableTemplateResolution`, `enableDynamicUi`). User and global settings are merged with `DEFAULT_ENABLED_RENDERERS` as the base.
+- **Rendering pipeline** — built-in renderers no longer self-gate via settings. The pipeline handles filtering centrally via `buildRendererChain()`.
+- **LRU cache** — `resolveCache` now caches rendered results (was: resolved data). Max 200 entries with eviction.
+
+### Removed
+
+- **`renderMessage` prop** — replaced by `messageRenderers` pipeline.
+- **`enableTemplateResolution` setting** — replaced by `enabledRenderers.template`.
+- **`enableDynamicUi` setting** — replaced by `enabledRenderers.dynamicUi`.
 
 ---
 

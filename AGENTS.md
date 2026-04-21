@@ -2,19 +2,22 @@
 
 This is the **@techtrips/ai-assistant** repository — an adapter-driven React component library for building AI assistant experiences, published to npm as `@techtrips/ai-assistant`.
 
-The library provides the `AIAssistant` chat component, a plug-in extension system, template rendering, and a visual template designer — all built on [Fluent UI v9](https://react.fluentui.dev/) and the [AG-UI protocol](https://docs.ag-ui.com).
+The library provides the `AIAssistant` chat component, a pluggable message-rendering pipeline, a plug-in extension system, template rendering, and a visual template designer — all built on [Fluent UI v9](https://react.fluentui.dev/) and the [AG-UI protocol](https://docs.ag-ui.com).
 
 ## Repo Layout
 
 | Directory | Purpose |
 |-----------|---------|
-| `src/components/ai-assistant/` | Core `AIAssistant` component, adapters, extensions, chat state |
+| `src/components/ai-assistant/` | Core `AIAssistant` component, adapters, extensions, renderers, chat state |
 | `src/components/ai-assistant/adapters/` | `agUiAdapter` (streaming) and `restAdapter` (non-streaming) |
 | `src/components/ai-assistant/extensions/` | Built-in extensions: ConversationHistory, StarterPrompts, TemplateRenderer, Settings |
 | `src/components/ai-assistant/chat-area/` | Chat message display, lazy loading, auto-scroll |
 | `src/components/ai-assistant/chat-input/` | Chat input, voice input, prompt parameter form |
 | `src/components/ai-assistant/sidebar-chat-history/` | Sidebar conversation navigation |
 | `src/components/ai-assistant/starter-prompt-chips/` | Onboarding starter prompt chips |
+| `src/components/ai-assistant/messageRenderers.ts` | `IMessageRenderer` interface, built-in renderers, `defaultMessageRenderers` |
+| `src/components/ai-assistant/AdaptiveCardRenderer.ts` | `IAdaptiveCardAdapter`, Adaptive Card SDK integration |
+| `src/components/ai-assistant/AIAssistant.utils.ts` | `buildRendererChain`, `resolveMessage`, LRU cache, permission helpers |
 | `src/components/templates/` | TemplateRenderer and TemplateDesigner components |
 | `src/components/common/` | Shared layout, slide-panel, page-layout |
 | `src/hooks/` | Shared React hooks |
@@ -59,9 +62,14 @@ The library provides the `AIAssistant` chat component, a plug-in extension syste
   │
   ├── AIAssistant ─────── Core chat component (JSX only)
   │     ├── useAIAssistant ── Orchestrator hook (all state + logic)
-  │     ├── adapter ────── IChatAdapter interface (pluggable backend)
-  │     │     ├── agUiAdapter ── AG-UI streaming (HttpAgent)
-  │     │     └── restAdapter ── REST POST (non-streaming)
+  │     ├── chatAdapter ──── IChatAdapter interface (pluggable backend)
+  │     │     ├── agUiAdapter ── AG-UI streaming (HttpAgent, mapData)
+  │     │     └── restAdapter ── REST POST (non-streaming, mapData)
+  │     ├── messageRenderers ── Pluggable rendering pipeline
+  │     │     ├── templateRenderer ── DB template lookup by templateId
+  │     │     ├── adaptiveCardRenderer ── Adaptive Card SDK (deterministic)
+  │     │     ├── dynamicUiRenderer ── LLM-generated HTML
+  │     │     └── Custom renderers ── Consumer-provided (always run first)
   │     ├── extensions ─── Plug-in sidebar views
   │     │     ├── ConversationHistory
   │     │     ├── StarterPrompts
@@ -92,9 +100,49 @@ interface IChatAdapter {
 ```
 
 Consumers pick or create an adapter:
-- `agUiAdapter({ url, getToken })` — AG-UI streaming via `@ag-ui/client`
-- `restAdapter({ url, getToken })` — Simple REST POST
+- `agUiAdapter({ url, getToken, mapData? })` — AG-UI streaming via `@ag-ui/client`
+- `restAdapter({ url, getToken?, extractText?, mapData? })` — Simple REST POST
 - Custom implementation of `IChatAdapter`
+
+Both built-in adapters accept a `mapData` callback that transforms agent-specific tool results into the canonical `IChatMessageData` shape (`{ payload?, templateId? }`). Defaults work for most agents; override to support custom tool conventions.
+
+### Message Rendering Pipeline
+
+The rendering pipeline transforms `IChatMessageData` into visual output. Each `IMessageRenderer` has a `type` and a `render(ctx)` method returning HTML, React nodes, or `undefined` to skip.
+
+```ts
+interface IMessageRenderer {
+  type: MessageRendererType;
+  render(ctx: IRenderContext): Promise<RenderResult>;
+}
+```
+
+**Built-in renderers** (in default order):
+
+| Renderer | Type key | Behaviour | Default |
+|----------|----------|-----------|---------|
+| `templateRenderer` | `template` | Fetches template by `templateId` from DB via service | Enabled |
+| `adaptiveCardRenderer` | `adaptiveCard` | Renders `payload` using the Adaptive Card SDK — deterministic, zero LLM cost | Enabled |
+| `dynamicUiRenderer` | `dynamicUi` | Sends `payload` to the LLM to generate HTML UI | Disabled |
+
+**Pipeline rules:**
+- If `messageRenderers` prop is provided, only those renderers are used. If omitted, `defaultMessageRenderers` applies.
+- Custom-type renderers (`MessageRendererType.Custom`) always run first, regardless of array position.
+- Built-in renderers are filtered by `IAIAssistantSettings.enabledRenderers`.
+- The first renderer to return a non-`undefined` result wins; the rest are skipped.
+- Results are cached per message ID with LRU eviction (max 200 entries).
+
+**Adaptive Card adapter:** Consumers can customise Adaptive Card rendering via `IAdaptiveCardAdapter`:
+
+```ts
+interface IAdaptiveCardAdapter {
+  buildHostConfig(theme: "light" | "dark"): Record<string, unknown>;
+  dataToCardBody(data: unknown): ACElement[];
+  postProcess(root: HTMLElement, cardJson: Record<string, unknown>): void;
+}
+
+// Use createAdaptiveCardRenderer(myAdapter) to inject a custom adapter
+```
 
 ### Extension System
 
@@ -108,7 +156,23 @@ Extensions are React components with static `extensionMeta` that self-register i
 
 ### Service Layer
 
-`IAIAssistantService` provides CRUD for conversations, starter prompts, templates, settings, and agent names. The built-in `AIAssistantService` class calls a REST API. Consumers can provide their own implementation.
+`IAIAssistantService` provides CRUD for conversations, starter prompts, templates, settings, agent names, and dynamic UI generation. The built-in `AIAssistantService` class calls a REST API. Consumers can provide their own implementation.
+
+### Settings
+
+`IAIAssistantSettings` controls runtime behaviour:
+
+```ts
+interface IAIAssistantSettings {
+  enabledRenderers: Record<string, boolean>;  // keyed by MessageRendererType
+  showAgentActivity: boolean;                 // developer mode
+  visibleAgents: string[];                    // empty = all agents
+}
+```
+
+`DEFAULT_ENABLED_RENDERERS`: `{ template: true, adaptiveCard: true, dynamicUi: false }`.
+
+The Settings extension renders per-renderer toggles. User and global settings are merged — global defaults propagate to all users, user settings override per-user.
 
 ### Theming
 
@@ -138,6 +202,10 @@ Starter prompts support parameter placeholders in the prompt text:
 
 When a user selects a parameterized prompt, `PromptParameterForm` renders input fields for each parameter before sending.
 
+### Context-Aware Filtering
+
+`AIAssistant` accepts a `context` prop (`IAIAssistantContext`) with `page`, `url`, `tags`, and arbitrary keys. When provided, starter prompt chips are filtered by matching context keywords against each prompt's tags, title, description, and agent name. As the user navigates pages, updating `context` reactively re-filters the visible chips. Falls back to showing all prompts when no context matches.
+
 ## Library Build
 
 The library is built with `tsc` (not Rspack). The `tsconfig.prod.json` excludes the dev app files (`App.tsx`, `main.tsx`, `appConfig.ts`, etc.) and outputs declaration files to `lib/`.
@@ -163,7 +231,10 @@ The repo includes a standalone Rspack dev app (`src/App.tsx`, `src/main.tsx`) fo
 ## Important Patterns
 
 - The adapter abstraction is the core design — all AI backends are pluggable via `IChatAdapter`
+- Adapters are the transform layer — `mapData` converts agent-specific tool results to `IChatMessageData`
 - `AIAssistant.tsx` is JSX-only — all logic lives in `useAIAssistant.ts`
+- Message rendering uses a pluggable pipeline (`IMessageRenderer[]`) — Custom first, then built-ins filtered by settings
+- `buildRendererChain()` merges consumer renderers with settings: Custom always first, built-ins gated by `enabledRenderers`
 - Extensions self-describe via `extensionMeta` (key, label, icon) — no central registry
 - `useChatState` hook manages all chat state (messages, streaming, thread lifecycle)
 - `useResizePanel` hook manages drag-to-resize for side panel mode
@@ -173,6 +244,7 @@ The repo includes a standalone Rspack dev app (`src/App.tsx`, `src/main.tsx`) fo
 - Message IDs use `Date.now() + Math.random()` — no shared mutable counters
 - Biome is the single tool for linting + formatting — do NOT introduce Prettier or ESLint
 - Use plain `<input>` instead of Fluent UI `<Input>` when CSS custom properties need to apply (Griffel overrides CSS vars)
+- Adaptive Card rendering is customisable via `IAdaptiveCardAdapter` — override host config, layout, or post-processing
 
 ## DAG (Document Augmented Generation)
 
@@ -183,6 +255,7 @@ When you need deeper framework context, fetch these docs:
 | AG-UI Protocol | <https://docs.ag-ui.com/concepts/overview> |
 | AG-UI Client SDK | <https://docs.ag-ui.com/sdk/js/overview> |
 | Fluent UI v9 | <https://storybooks.fluentui.dev/react/llms.txt> |
+| Adaptive Cards | <https://adaptivecards.io/explorer/> |
 | Rspack | <https://rspack.rs/llms.txt> |
 | Biome | <https://biomejs.dev/> |
 | TypeScript | <https://www.typescriptlang.org/docs/> |
