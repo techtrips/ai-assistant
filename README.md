@@ -60,7 +60,7 @@ const adapter = agUiAdapter({
 function App() {
   return (
     <AIAssistant
-      adapter={adapter}
+      chatAdapter={adapter}
       headerText="TechTrips Assistant"
       greetingText="How can I help you today?"
       agents={[{ name: "TechTrips Agent", description: "Handles TechTrips queries" }]}
