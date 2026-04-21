@@ -6,7 +6,11 @@ import type { ITemplate } from "../../AIAssistant.types";
 import type { ITemplate as IDesignerTemplate } from "../../../templates/templates.models";
 
 export const useTemplateRenderer = () => {
-	const { service, permissions, agentNames: contextAgentNames } = useAIAssistantContext();
+	const {
+		service,
+		permissions,
+		agentNames: contextAgentNames,
+	} = useAIAssistantContext();
 	const canManage = checkPermission(
 		permissions,
 		AIAssistantPermission.ManageTemplates,

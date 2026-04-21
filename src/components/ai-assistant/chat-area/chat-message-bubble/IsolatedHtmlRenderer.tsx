@@ -9,8 +9,22 @@ type IsolatedHtmlRendererProps = {
 const buildThemeStylesheet = (theme: "light" | "dark"): string => {
 	const vars =
 		theme === "dark"
-			? { bg: "#1e1e1e", fg: "#e0e0e0", muted: "#a0a0a0", surface: "#2d2d2d", border: "#404040", accent: "#4ea8f0" }
-			: { bg: "#ffffff", fg: "#333333", muted: "#6b6b6b", surface: "#f5f5f5", border: "#e0e0e0", accent: "#0078d4" };
+			? {
+					bg: "#1e1e1e",
+					fg: "#e0e0e0",
+					muted: "#a0a0a0",
+					surface: "#2d2d2d",
+					border: "#404040",
+					accent: "#4ea8f0",
+				}
+			: {
+					bg: "#ffffff",
+					fg: "#333333",
+					muted: "#6b6b6b",
+					surface: "#f5f5f5",
+					border: "#e0e0e0",
+					accent: "#0078d4",
+				};
 
 	return `<style data-theme-base>
 :host {

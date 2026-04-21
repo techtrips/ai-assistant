@@ -5,8 +5,13 @@ import { checkPermission } from "../../AIAssistant.utils";
 import type { IStarterPrompt } from "../../AIAssistant.types";
 
 export const useStarterPrompts = () => {
-	const { service, permissions, sendMessage, agentNames: contextAgentNames, refreshStarterPrompts } =
-		useAIAssistantContext();
+	const {
+		service,
+		permissions,
+		sendMessage,
+		agentNames: contextAgentNames,
+		refreshStarterPrompts,
+	} = useAIAssistantContext();
 	const canManage = checkPermission(
 		permissions,
 		AIAssistantPermission.ManageStarterPrompts,

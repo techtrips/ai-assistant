@@ -1,16 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAIAssistantContext } from "../../AIAssistantContext";
 import type { IAIAssistantSettings } from "../../AIAssistant.types";
-import { AIAssistantPermission, DEFAULT_SETTINGS } from "../../AIAssistant.types";
+import {
+	AIAssistantPermission,
+	DEFAULT_SETTINGS,
+} from "../../AIAssistant.types";
 import { checkPermission } from "../../AIAssistant.utils";
 
 export const useSettings = () => {
-	const { service, permissions, agentNames: contextAgentNames, updateSettings } =
-		useAIAssistantContext();
+	const {
+		service,
+		permissions,
+		agentNames: contextAgentNames,
+		updateSettings,
+	} = useAIAssistantContext();
 	const [userSettings, setUserSettings] =
 		useState<Partial<IAIAssistantSettings>>(DEFAULT_SETTINGS);
-	const [globalSettings, setGlobalSettings] =
-		useState<Partial<IAIAssistantSettings>>({});
+	const [globalSettings, setGlobalSettings] = useState<
+		Partial<IAIAssistantSettings>
+	>({});
 	const [allAgentNames, setAllAgentNames] = useState<string[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);

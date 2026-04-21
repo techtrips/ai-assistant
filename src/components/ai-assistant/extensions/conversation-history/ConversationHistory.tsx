@@ -1,3 +1,4 @@
+import { useCallback, useRef } from "react";
 import {
 	Add16Regular,
 	ChatRegular,
@@ -12,20 +13,32 @@ import { useConversationHistoryStyles } from "./ConversationHistory.styles";
 import { useConversationHistory } from "./useConversationHistory";
 import { getTimeAgo, groupByTime } from "./ConversationHistory.utils";
 
+const SCROLL_THRESHOLD = 80;
+
 const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 	const classes = useConversationHistoryStyles();
 	const {
 		service,
 		conversations,
-		filtered,
+		totalCount,
 		loading,
 		error,
 		searchQuery,
 		setSearchQuery,
+		loadMore,
 		handleSelect,
 		handleNewChat,
 		activeThreadId,
 	} = useConversationHistory();
+	const listRef = useRef<HTMLDivElement>(null);
+
+	const handleScroll = useCallback(() => {
+		const el = listRef.current;
+		if (!el) return;
+		const nearBottom =
+			el.scrollHeight - el.scrollTop - el.clientHeight <= SCROLL_THRESHOLD;
+		if (nearBottom) loadMore();
+	}, [loadMore]);
 
 	if (!service) {
 		return (
@@ -35,28 +48,28 @@ const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 		);
 	}
 
+	const hasMore = conversations.length < totalCount;
+
 	const renderToolbar = () => (
 		<>
-			{conversations.length > 0 && (
-				<div className={classes.searchWrap}>
-					<Search20Regular fontSize={16} className={classes.searchIcon} />
-					<input
-						className={classes.searchInput}
-						placeholder="Search"
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-					/>
-				</div>
-			)}
+			<div className={classes.searchWrap}>
+				<Search20Regular fontSize={16} className={classes.searchIcon} />
+				<input
+					className={classes.searchInput}
+					placeholder="Search"
+					value={searchQuery}
+					onChange={(e) => setSearchQuery(e.target.value)}
+				/>
+			</div>
 			<span className={classes.countText}>
-				{filtered.length} conversation
-				{filtered.length === 1 ? "" : "s"}
+				{totalCount} conversation
+				{totalCount === 1 ? "" : "s"}
 			</span>
 		</>
 	);
 
 	const renderContent = () => {
-		if (loading) {
+		if (loading && conversations.length === 0) {
 			return <Shimmer layout="list" rows={5} />;
 		}
 		if (error && conversations.length === 0) {
@@ -70,26 +83,20 @@ const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 		if (conversations.length === 0) {
 			return (
 				<div className={classes.emptyState}>
-					<div className={classes.emptyTitle}>No conversations yet</div>
-					<div className={classes.emptyDescription}>
-						Start a new conversation to see it listed here.
+					<div className={classes.emptyTitle}>
+						{searchQuery ? "No matches" : "No conversations yet"}
 					</div>
-				</div>
-			);
-		}
-		if (filtered.length === 0) {
-			return (
-				<div className={classes.emptyState}>
-					<div className={classes.emptyTitle}>No matches</div>
 					<div className={classes.emptyDescription}>
-						Try a different keyword.
+						{searchQuery
+							? "Try a different keyword."
+							: "Start a new conversation to see it listed here."}
 					</div>
 				</div>
 			);
 		}
 		return (
-			<div className={classes.list}>
-				{groupByTime(filtered, (c) => c.lastActivityAt).map((group) => (
+			<div ref={listRef} className={classes.list} onScroll={handleScroll}>
+				{groupByTime(conversations, (c) => c.lastActivityAt).map((group) => (
 					<div key={group.label} className={classes.group}>
 						<div className={classes.groupLabel}>{group.label}</div>
 						{group.items.map((c) => {
@@ -97,12 +104,17 @@ const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 							return (
 								<button
 									key={c.id}
-									className={mergeClasses(classes.card, isActive && classes.cardActive)}
+									className={mergeClasses(
+										classes.card,
+										isActive && classes.cardActive,
+									)}
 									type="button"
 									onClick={() => handleSelect(c, onClose)}
 								>
 									<div className={classes.cardRow}>
-										<span className={classes.cardTitle}>{c.firstMessageText}</span>
+										<span className={classes.cardTitle}>
+											{c.firstMessageText}
+										</span>
 										<span className={classes.cardTime}>
 											{getTimeAgo(c.lastActivityAt)}
 										</span>
@@ -112,6 +124,7 @@ const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 						})}
 					</div>
 				))}
+				{hasMore && <Shimmer layout="list" rows={2} />}
 			</div>
 		);
 	};

@@ -7,7 +7,8 @@ const VISIBLE_COUNT = 10;
 
 export const StarterPromptChips = () => {
 	const classes = useStarterPromptChipsStyles();
-	const { selectPrompt, starterPrompts, starterPromptsLoading } = useAIAssistantContext();
+	const { selectPrompt, starterPrompts, starterPromptsLoading } =
+		useAIAssistantContext();
 	const [showOverflow, setShowOverflow] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 

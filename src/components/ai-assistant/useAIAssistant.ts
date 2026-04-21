@@ -105,6 +105,11 @@ export const useAIAssistant = ({
 	const [activeParameterizedPrompt, setActiveParameterizedPrompt] =
 		useState<IStarterPrompt | null>(null);
 
+	// Pagination state for conversation history
+	const [totalMessageCount, setTotalMessageCount] = useState(0);
+	const loadingMoreRef = useRef(false);
+	const paginationRef = useRef({ page: 1, threadId: "" });
+
 	const isSidePanel = !effectiveFullScreen;
 	const {
 		width: sidePanelWidth,
@@ -255,6 +260,49 @@ export const useAIAssistant = ({
 			});
 	}, [service, agentNames]);
 
+	const loadOlderMessages = useCallback(() => {
+		if (!service || loadingMoreRef.current) return;
+		const { page, threadId: paginatedThreadId } = paginationRef.current;
+		if (!paginatedThreadId || paginatedThreadId !== threadId) return;
+
+		loadingMoreRef.current = true;
+		const nextPage = page + 1;
+		service
+			.getConversationMessages(paginatedThreadId, nextPage)
+			.then((result) => {
+				if (result.data) {
+					paginationRef.current.page = nextPage;
+					setTotalMessageCount(result.data.totalCount);
+					const olderMessages = result.data.messages;
+					setMessages((prev) => [...olderMessages, ...prev]);
+				}
+			})
+			.catch(() => {
+				/* ignore */
+			})
+			.finally(() => {
+				loadingMoreRef.current = false;
+			});
+	}, [service, threadId, setMessages]);
+
+	const selectConversation = useCallback(
+		async (selectedThreadId: string) => {
+			if (!service) return;
+			const result = await service.getConversationMessages(selectedThreadId);
+			setThreadId(selectedThreadId);
+			if (result.data) {
+				setMessages(result.data.messages);
+				setTotalMessageCount(result.data.totalCount);
+				paginationRef.current = { page: 1, threadId: selectedThreadId };
+			} else {
+				setMessages([]);
+				setTotalMessageCount(0);
+				paginationRef.current = { page: 1, threadId: "" };
+			}
+		},
+		[service, setMessages, setThreadId],
+	);
+
 	const filteredStarterPrompts = useMemo(() => {
 		if (!context) return starterPrompts;
 		const { page, url, tags: contextTags, ...rest } = context;
@@ -292,10 +340,13 @@ export const useAIAssistant = ({
 			activeParameterizedPrompt,
 			dismissParameterizedPrompt,
 			newChat,
+			selectConversation,
 			messages,
 			setMessages,
 			threadId,
 			setThreadId,
+			totalMessageCount,
+			loadOlderMessages,
 			service,
 			permissions,
 			agentNames,
@@ -312,10 +363,13 @@ export const useAIAssistant = ({
 			activeParameterizedPrompt,
 			dismissParameterizedPrompt,
 			newChat,
+			selectConversation,
 			messages,
 			setMessages,
 			threadId,
 			setThreadId,
+			totalMessageCount,
+			loadOlderMessages,
 			service,
 			permissions,
 			agentNames,
@@ -371,6 +425,8 @@ export const useAIAssistant = ({
 
 	const handleNewChat = useCallback(() => {
 		newChat();
+		setTotalMessageCount(0);
+		paginationRef.current = { page: 1, threadId: "" };
 		setActiveView(CHAT_VIEW);
 	}, [newChat]);
 
@@ -407,6 +463,8 @@ export const useAIAssistant = ({
 		messages,
 		isStreaming,
 		streamingText,
+		totalMessageCount,
+		loadOlderMessages,
 		sendMessage,
 		abort,
 		starterPrompts,

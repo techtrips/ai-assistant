@@ -21,10 +21,7 @@ const ShimmerLine = ({
 }: IShimmerLineProps) => {
 	const classes = useShimmerStyles();
 	return (
-		<div
-			className={classes.line}
-			style={{ width, height } as CSSProperties}
-		/>
+		<div className={classes.line} style={{ width, height } as CSSProperties} />
 	);
 };
 
@@ -41,13 +38,13 @@ const ShimmerCircle = ({ size = 36 }: { size?: number }) => {
 const ShimmerBlock = ({
 	width = "100%",
 	height = "60px",
-}: { width?: string; height?: string }) => {
+}: {
+	width?: string;
+	height?: string;
+}) => {
 	const classes = useShimmerStyles();
 	return (
-		<div
-			className={classes.block}
-			style={{ width, height } as CSSProperties}
-		/>
+		<div className={classes.block} style={{ width, height } as CSSProperties} />
 	);
 };
 
@@ -57,7 +54,14 @@ const ListRow = () => {
 	return (
 		<div className={classes.row}>
 			<ShimmerCircle size={36} />
-			<div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+			<div
+				style={{
+					flex: 1,
+					display: "flex",
+					flexDirection: "column",
+					gap: "6px",
+				}}
+			>
 				<ShimmerLine width="60%" height="12px" />
 				<ShimmerLine width="40%" height="10px" />
 			</div>

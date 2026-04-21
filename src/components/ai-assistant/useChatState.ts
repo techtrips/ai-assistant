@@ -9,7 +9,9 @@ const nextThreadId = () =>
 
 export interface IUseChatStateResult {
 	messages: IChatMessage[];
-	setMessages: (messages: IChatMessage[]) => void;
+	setMessages: (
+		action: IChatMessage[] | ((prev: IChatMessage[]) => IChatMessage[]),
+	) => void;
 	threadId: string;
 	setThreadId: (id: string) => void;
 	isStreaming: boolean;

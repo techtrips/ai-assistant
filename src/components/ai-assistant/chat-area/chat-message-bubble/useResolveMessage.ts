@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { IAIAssistantService } from "../../AIAssistant.services";
-import type { IAIAssistantSettings, IChatMessage } from "../../AIAssistant.types";
+import type {
+	IAIAssistantSettings,
+	IChatMessage,
+} from "../../AIAssistant.types";
 import {
 	getResolvedFromCache,
 	needsResolution,

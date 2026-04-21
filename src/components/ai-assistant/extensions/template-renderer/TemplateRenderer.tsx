@@ -85,9 +85,7 @@ const TemplateRendererPanel = ({ onClose }: IExtensionProps) => {
 					<div className={classes.rowTitleRow}>
 						<span className={classes.rowTitle}>{template.name}</span>
 						{template.agent && (
-							<span className={classes.agentBadge}>
-								{template.agent}
-							</span>
+							<span className={classes.agentBadge}>{template.agent}</span>
 						)}
 						<span
 							className={
@@ -97,18 +95,12 @@ const TemplateRendererPanel = ({ onClose }: IExtensionProps) => {
 							}
 							title={hasContent ? "Template designed" : "No design yet"}
 						>
-							{hasContent ? (
-								<CheckmarkCircle12Regular />
-							) : (
-								<Circle12Regular />
-							)}
+							{hasContent ? <CheckmarkCircle12Regular /> : <Circle12Regular />}
 							{hasContent ? "Designed" : "Not designed"}
 						</span>
 					</div>
 					{template.description && (
-						<div className={classes.rowDescription}>
-							{template.description}
-						</div>
+						<div className={classes.rowDescription}>{template.description}</div>
 					)}
 				</div>
 				{canManage && (

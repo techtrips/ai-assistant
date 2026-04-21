@@ -38,6 +38,8 @@ export const AIAssistant = (props: IAIAssistantProps) => {
 		messages,
 		isStreaming,
 		streamingText,
+		totalMessageCount,
+		loadOlderMessages,
 		sendMessage,
 		abort,
 		starterPrompts,
@@ -72,6 +74,8 @@ export const AIAssistant = (props: IAIAssistantProps) => {
 						messages={messages}
 						isStreaming={isStreaming}
 						streamingText={streamingText}
+						totalMessageCount={totalMessageCount}
+						onLoadMore={loadOlderMessages}
 						renderMessage={renderMessage}
 					/>
 					{activeParameterizedPrompt && (
@@ -194,7 +198,10 @@ export const AIAssistant = (props: IAIAssistantProps) => {
 						)}
 						{showFullScreenToggle && (
 							<button
-								className={mergeClasses(classes.headerButton, classes.headerButtonHideMobile)}
+								className={mergeClasses(
+									classes.headerButton,
+									classes.headerButtonHideMobile,
+								)}
 								type="button"
 								title={
 									effectiveFullScreen
@@ -300,7 +307,10 @@ export const AIAssistant = (props: IAIAssistantProps) => {
 								))}
 							</nav>
 							{!isSidebarCollapsed && (
-								<SidebarChatHistory onSelect={handleBackToChat} showSelection={activeView === CHAT_VIEW} />
+								<SidebarChatHistory
+									onSelect={handleBackToChat}
+									showSelection={activeView === CHAT_VIEW}
+								/>
 							)}
 						</div>
 						<div className={classes.contentBody}>{renderContent()}</div>

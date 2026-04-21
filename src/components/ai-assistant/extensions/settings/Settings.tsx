@@ -34,7 +34,10 @@ const SettingsPanel = ({ onClose }: IExtensionProps) => {
 	const effectiveSelected =
 		visibleAgents.length > 0 ? visibleAgents : allAgentNames;
 
-	const handleAgentToggle = (_: unknown, data: { selectedOptions: string[] }) => {
+	const handleAgentToggle = (
+		_: unknown,
+		data: { selectedOptions: string[] },
+	) => {
 		const sel = data.selectedOptions;
 		// Must keep at least 1 agent
 		if (sel.length === 0) return;
@@ -63,9 +66,7 @@ const SettingsPanel = ({ onClose }: IExtensionProps) => {
 					<span className={classes.sectionTitle}>Preferences</span>
 					<div className={classes.card}>
 						<label className={classes.settingRow}>
-							<span className={classes.settingLabel}>
-								Show agent activity
-							</span>
+							<span className={classes.settingLabel}>Show agent activity</span>
 							<Switch
 								checked={userSettings.showAgentActivity ?? false}
 								onChange={(_, data) =>
@@ -125,10 +126,7 @@ const SettingsPanel = ({ onClose }: IExtensionProps) => {
 								<Switch
 									checked={globalSettings.enableTemplateResolution ?? true}
 									onChange={(_, data) =>
-										saveGlobalSetting(
-											"enableTemplateResolution",
-											data.checked,
-										)
+										saveGlobalSetting("enableTemplateResolution", data.checked)
 									}
 								/>
 							</label>

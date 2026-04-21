@@ -176,7 +176,11 @@ const resolveMessageImpl = async (
 					return entity.data.content;
 				}
 			} catch (err) {
-				console.error("[ai-assistant] Template lookup failed:", templateId, err);
+				console.error(
+					"[ai-assistant] Template lookup failed:",
+					templateId,
+					err,
+				);
 			}
 		}
 	}

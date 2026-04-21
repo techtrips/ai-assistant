@@ -1,5 +1,9 @@
 export { AIAssistant } from "./AIAssistant";
-export type { IAIAssistantService } from "./AIAssistant.services";
+export type {
+	IAIAssistantService,
+	IConversationHistoryResponse as ConversationHistoryResponse,
+	IConversationMessagesResponse as ConversationMessagesResponse,
+} from "./AIAssistant.services";
 export { AIAssistantService } from "./AIAssistant.services";
 export type {
 	IAIAssistantContext as AIAssistantContext,

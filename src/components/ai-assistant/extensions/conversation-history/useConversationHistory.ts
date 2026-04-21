@@ -1,70 +1,86 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAIAssistantContext } from "../../AIAssistantContext";
 import type { IConversation } from "../../AIAssistant.types";
-import type { IEntity } from "../../AIAssistant.services";
 
-/** Module-level dedup: one in-flight request at a time. */
-let inflightConversations: Promise<IEntity<IConversation[]>> | null = null;
+const PAGE_SIZE = 20;
+const DEBOUNCE_MS = 300;
 
 export const useConversationHistory = () => {
-	const { service, newChat, setMessages, setThreadId, threadId } =
+	const { service, newChat, selectConversation, threadId } =
 		useAIAssistantContext();
 	const [conversations, setConversations] = useState<IConversation[]>([]);
+	const [totalCount, setTotalCount] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | undefined>();
 	const [searchQuery, setSearchQuery] = useState("");
 
+	const pageRef = useRef(1);
+	const loadingMoreRef = useRef(false);
+	const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+	const fetchPage = useCallback(
+		async (page: number, search: string, append: boolean) => {
+			if (!service) return;
+			try {
+				const result = await service.getConversationHistory(
+					page,
+					PAGE_SIZE,
+					search || undefined,
+				);
+				if (result.data) {
+					const items = result.data.conversations;
+					setConversations((prev) => (append ? [...prev, ...items] : items));
+					setTotalCount(result.data.totalCount);
+					pageRef.current = page;
+				}
+				if (result.error) setError(result.error);
+			} catch {
+				/* ignore */
+			}
+		},
+		[service],
+	);
+
+	// Initial load + search changes (debounced)
 	useEffect(() => {
 		if (!service) {
 			setLoading(false);
 			return;
 		}
-		let ignore = false;
+		setLoading(true);
+		setError(undefined);
 
-		if (!inflightConversations) {
-			inflightConversations = service.getConversationHistory();
-			inflightConversations.finally(() => {
-				inflightConversations = null;
-			});
+		clearTimeout(debounceRef.current);
+		const isSearch = searchQuery.length > 0;
+
+		const load = () => {
+			fetchPage(1, searchQuery, false).finally(() => setLoading(false));
+		};
+
+		if (isSearch) {
+			debounceRef.current = setTimeout(load, DEBOUNCE_MS);
+		} else {
+			load();
 		}
 
-		inflightConversations.then((result) => {
-			if (ignore) return;
-			if (result.data) {
-				const sorted = [...result.data].sort(
-					(a, b) =>
-						new Date(b.lastActivityAt).getTime() -
-						new Date(a.lastActivityAt).getTime(),
-				);
-				setConversations(sorted);
-			}
-			if (result.error) setError(result.error);
-			setLoading(false);
-		});
-		return () => {
-			ignore = true;
-		};
-	}, [service]);
+		return () => clearTimeout(debounceRef.current);
+	}, [service, searchQuery, fetchPage]);
 
-	const filtered = useMemo(() => {
-		if (!searchQuery.trim()) return conversations;
-		const q = searchQuery.toLowerCase();
-		return conversations.filter((c) =>
-			c.firstMessageText.toLowerCase().includes(q),
-		);
-	}, [conversations, searchQuery]);
+	const loadMore = useCallback(() => {
+		if (loadingMoreRef.current || conversations.length >= totalCount) return;
+		loadingMoreRef.current = true;
+		fetchPage(pageRef.current + 1, searchQuery, true).finally(() => {
+			loadingMoreRef.current = false;
+		});
+	}, [conversations.length, totalCount, searchQuery, fetchPage]);
 
 	const handleSelect = useCallback(
 		async (conversation: IConversation, onClose: () => void) => {
 			if (!service) return;
 			onClose();
-			const result = await service.getConversationMessages(
-				conversation.threadId,
-			);
-			setThreadId(conversation.threadId);
-			setMessages(result.data ?? []);
+			await selectConversation(conversation.threadId);
 		},
-		[service, setMessages, setThreadId],
+		[service, selectConversation],
 	);
 
 	const handleNewChat = useCallback(
@@ -78,11 +94,12 @@ export const useConversationHistory = () => {
 	return {
 		service,
 		conversations,
-		filtered,
+		totalCount,
 		loading,
 		error,
 		searchQuery,
 		setSearchQuery,
+		loadMore,
 		handleSelect,
 		handleNewChat,
 		activeThreadId: threadId,

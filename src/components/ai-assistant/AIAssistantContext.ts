@@ -1,8 +1,15 @@
 import { createContext, useContext } from "react";
 import type { IChatMessage } from "./AIAssistant.types";
-import type { AIAssistantPermission, IAIAssistantSettings } from "./AIAssistant.types";
+import type {
+	AIAssistantPermission,
+	IAIAssistantSettings,
+} from "./AIAssistant.types";
 import type { IStarterPrompt } from "./AIAssistant.types";
 import type { IAIAssistantService } from "./AIAssistant.services";
+
+type SetMessagesAction =
+	| IChatMessage[]
+	| ((prev: IChatMessage[]) => IChatMessage[]);
 
 export interface IAIAssistantContextValue {
 	sendMessage: (text: string) => void;
@@ -10,10 +17,13 @@ export interface IAIAssistantContextValue {
 	activeParameterizedPrompt: IStarterPrompt | null;
 	dismissParameterizedPrompt: () => void;
 	newChat: () => void;
+	selectConversation: (threadId: string) => Promise<void>;
 	messages: IChatMessage[];
-	setMessages: (messages: IChatMessage[]) => void;
+	setMessages: (action: SetMessagesAction) => void;
 	threadId: string;
 	setThreadId: (id: string) => void;
+	totalMessageCount: number;
+	loadOlderMessages: () => void;
 	service?: IAIAssistantService;
 	permissions?: AIAssistantPermission[];
 	agentNames: string[];

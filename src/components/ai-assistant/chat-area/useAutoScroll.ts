@@ -2,11 +2,14 @@ import { useCallback, useEffect, useRef } from "react";
 
 const BOTTOM_THRESHOLD = 50;
 
-export const useAutoScroll = (messageCount: number) => {
+export const useAutoScroll = (messageCount: number, isStreaming = false) => {
 	const elRef = useRef<HTMLDivElement | null>(null);
 	const lockedRef = useRef(true);
+	const streamingRef = useRef(isStreaming);
 	const roRef = useRef<ResizeObserver | null>(null);
 	const moRef = useRef<MutationObserver | null>(null);
+
+	streamingRef.current = isStreaming;
 
 	const isAtBottom = (el: HTMLDivElement) =>
 		el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_THRESHOLD;
@@ -38,13 +41,15 @@ export const useAutoScroll = (messageCount: number) => {
 		el.addEventListener(
 			"scroll",
 			() => {
-				lockedRef.current = isAtBottom(el);
+				if (!streamingRef.current) {
+					lockedRef.current = isAtBottom(el);
+				}
 			},
 			{ passive: true },
 		);
 
 		const ro = new ResizeObserver(() => {
-			if (lockedRef.current && elRef.current) {
+			if ((lockedRef.current || streamingRef.current) && elRef.current) {
 				elRef.current.scrollTop = elRef.current.scrollHeight;
 			}
 		});
@@ -68,11 +73,11 @@ export const useAutoScroll = (messageCount: number) => {
 					}
 				});
 			}
-			if (lockedRef.current && elRef.current) {
+			if ((lockedRef.current || streamingRef.current) && elRef.current) {
 				elRef.current.scrollTop = elRef.current.scrollHeight;
 			}
 		});
-		mo.observe(el, { childList: true, subtree: true });
+		mo.observe(el, { childList: true, subtree: true, characterData: true });
 		moRef.current = mo;
 	}, []);
 

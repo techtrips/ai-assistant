@@ -40,11 +40,31 @@ export interface ITemplateService {
 	deleteTemplate: (templateId: string) => Promise<IEntity<void>>;
 }
 
+export interface IConversationMessagesResponse {
+	messages: IChatMessage[];
+	totalCount: number;
+	page: number;
+	pageSize: number;
+}
+
+export interface IConversationHistoryResponse {
+	conversations: IConversation[];
+	totalCount: number;
+	page: number;
+	pageSize: number;
+}
+
 export interface IConversationService {
-	getConversationHistory: () => Promise<IEntity<IConversation[]>>;
+	getConversationHistory: (
+		page?: number,
+		pageSize?: number,
+		search?: string,
+	) => Promise<IEntity<IConversationHistoryResponse>>;
 	getConversationMessages: (
 		threadId: string,
-	) => Promise<IEntity<IChatMessage[]>>;
+		page?: number,
+		pageSize?: number,
+	) => Promise<IEntity<IConversationMessagesResponse>>;
 	generateDynamicUi: (
 		data: string,
 		prompt: string,
@@ -181,15 +201,26 @@ export class AIAssistantService implements IAIAssistantService {
 	}
 
 	// Conversation History
-	getConversationHistory(): Promise<IEntity<IConversation[]>> {
-		return this.fetchApi("/conversations", "GET");
+	getConversationHistory(
+		page = 1,
+		pageSize = 20,
+		search?: string,
+	): Promise<IEntity<IConversationHistoryResponse>> {
+		const params = new URLSearchParams({
+			page: String(page),
+			pageSize: String(pageSize),
+		});
+		if (search) params.set("search", search);
+		return this.fetchApi(`/conversations?${params}`, "GET");
 	}
 
 	async getConversationMessages(
 		threadId: string,
-	): Promise<IEntity<IChatMessage[]>> {
-		return this.fetchApi<IChatMessage[]>(
-			`/conversations/${threadId}/messages`,
+		page = 1,
+		pageSize = 20,
+	): Promise<IEntity<IConversationMessagesResponse>> {
+		return this.fetchApi<IConversationMessagesResponse>(
+			`/conversations/${threadId}/messages?page=${page}&pageSize=${pageSize}`,
 			"GET",
 		);
 	}

@@ -86,24 +86,24 @@ export const PromptParameterForm = ({
 					{parameters.map((param, index) => {
 						const optional = isOptionalParam(param);
 						return (
-						<div key={param} className={classes.fieldGroup}>
-							<label className={classes.fieldLabel}>
-								{prettifyParamName(param)}
-								{optional ? (
-									<span className={classes.optionalHint}>(optional)</span>
-								) : (
-									<span className={classes.requiredMark}>*</span>
-								)}
-							</label>
-							<input
-								className={classes.input}
-								ref={index === 0 ? firstInputRef : undefined}
-								value={values[param] ?? ""}
-								onChange={(e) => handleFieldChange(param, e.target.value)}
-								placeholder={`Enter ${prettifyParamName(param)}${optional ? " (optional)" : ""}`}
-								autoComplete="off"
-							/>
-						</div>
+							<div key={param} className={classes.fieldGroup}>
+								<label className={classes.fieldLabel}>
+									{prettifyParamName(param)}
+									{optional ? (
+										<span className={classes.optionalHint}>(optional)</span>
+									) : (
+										<span className={classes.requiredMark}>*</span>
+									)}
+								</label>
+								<input
+									className={classes.input}
+									ref={index === 0 ? firstInputRef : undefined}
+									value={values[param] ?? ""}
+									onChange={(e) => handleFieldChange(param, e.target.value)}
+									placeholder={`Enter ${prettifyParamName(param)}${optional ? " (optional)" : ""}`}
+									autoComplete="off"
+								/>
+							</div>
 						);
 					})}
 				</div>
