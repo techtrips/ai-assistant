@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { mergeClasses } from "@fluentui/react-components";
 import { Search12Regular } from "@fluentui/react-icons";
 import { useSidebarChatHistoryStyles } from "./SidebarChatHistory.styles";
@@ -8,8 +8,6 @@ import {
 	getTimeAgo,
 	groupByTime,
 } from "../extensions/conversation-history";
-
-const SCROLL_THRESHOLD = 80;
 
 export const SidebarChatHistory = ({
 	onSelect,
@@ -30,15 +28,22 @@ export const SidebarChatHistory = ({
 		handleSelect,
 		activeThreadId,
 	} = useConversationHistory();
-	const listRef = useRef<HTMLDivElement>(null);
+	const sentinelRef = useRef<HTMLDivElement>(null);
+	const loadMoreRef = useRef(loadMore);
+	loadMoreRef.current = loadMore;
 
-	const handleScroll = useCallback(() => {
-		const el = listRef.current;
+	useEffect(() => {
+		const el = sentinelRef.current;
 		if (!el) return;
-		const nearBottom =
-			el.scrollHeight - el.scrollTop - el.clientHeight <= SCROLL_THRESHOLD;
-		if (nearBottom) loadMore();
-	}, [loadMore]);
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting) loadMoreRef.current();
+			},
+			{ threshold: 0 },
+		);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, [conversations.length]);
 
 	if (!service) return null;
 
@@ -55,7 +60,7 @@ export const SidebarChatHistory = ({
 					onChange={(e) => setSearchQuery(e.target.value)}
 				/>
 			</div>
-			<div ref={listRef} className={classes.list} onScroll={handleScroll}>
+			<div className={classes.list}>
 				{loading && conversations.length === 0 ? (
 					<Shimmer layout="list" rows={3} />
 				) : conversations.length === 0 ? (
@@ -94,7 +99,11 @@ export const SidebarChatHistory = ({
 								</div>
 							),
 						)}
-						{hasMore && <Shimmer layout="list" rows={2} />}
+						{hasMore && (
+							<div ref={sentinelRef}>
+								<Shimmer layout="list" rows={2} />
+							</div>
+						)}
 					</>
 				)}
 			</div>

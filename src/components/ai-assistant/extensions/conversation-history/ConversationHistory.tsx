@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
 	Add16Regular,
 	ChatRegular,
@@ -12,8 +12,6 @@ import { Shimmer } from "../../../common/shimmer";
 import { useConversationHistoryStyles } from "./ConversationHistory.styles";
 import { useConversationHistory } from "./useConversationHistory";
 import { getTimeAgo, groupByTime } from "./ConversationHistory.utils";
-
-const SCROLL_THRESHOLD = 80;
 
 const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 	const classes = useConversationHistoryStyles();
@@ -30,15 +28,22 @@ const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 		handleNewChat,
 		activeThreadId,
 	} = useConversationHistory();
-	const listRef = useRef<HTMLDivElement>(null);
+	const sentinelRef = useRef<HTMLDivElement>(null);
+	const loadMoreRef = useRef(loadMore);
+	loadMoreRef.current = loadMore;
 
-	const handleScroll = useCallback(() => {
-		const el = listRef.current;
+	useEffect(() => {
+		const el = sentinelRef.current;
 		if (!el) return;
-		const nearBottom =
-			el.scrollHeight - el.scrollTop - el.clientHeight <= SCROLL_THRESHOLD;
-		if (nearBottom) loadMore();
-	}, [loadMore]);
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting) loadMoreRef.current();
+			},
+			{ threshold: 0 },
+		);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, [conversations.length]);
 
 	if (!service) {
 		return (
@@ -95,7 +100,7 @@ const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 			);
 		}
 		return (
-			<div ref={listRef} className={classes.list} onScroll={handleScroll}>
+			<div className={classes.list}>
 				{groupByTime(conversations, (c) => c.lastActivityAt).map((group) => (
 					<div key={group.label} className={classes.group}>
 						<div className={classes.groupLabel}>{group.label}</div>
@@ -124,7 +129,11 @@ const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 						})}
 					</div>
 				))}
-				{hasMore && <Shimmer layout="list" rows={2} />}
+				{hasMore && (
+					<div ref={sentinelRef}>
+						<Shimmer layout="list" rows={2} />
+					</div>
+				)}
 			</div>
 		);
 	};

@@ -202,6 +202,7 @@ const resolveMessageImpl = async (
 			}
 		}
 	}
+	// console.log("[ai-assistant] No resolution for message:", message);
 
 	// Priority 3: No resolution — component shows content as text or payload as raw data
 	return undefined;
