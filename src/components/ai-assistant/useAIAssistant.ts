@@ -13,7 +13,11 @@ import type {
 	IAIAssistantSettings,
 	IStarterPrompt,
 } from "./AIAssistant.types";
-import { AIAssistantPermission, DEFAULT_SETTINGS } from "./AIAssistant.types";
+import {
+	AIAssistantPermission,
+	DEFAULT_ENABLED_RENDERERS,
+	DEFAULT_SETTINGS,
+} from "./AIAssistant.types";
 import { checkPermission } from "./AIAssistant.utils";
 import type { IAIAssistantContextValue } from "./AIAssistantContext";
 import { ConversationHistory } from "./extensions/conversation-history";
@@ -62,22 +66,24 @@ const subscribeMobile = (cb: () => void) => {
 const getIsMobile = () => window.matchMedia(MOBILE_QUERY).matches;
 
 export const useAIAssistant = ({
-	adapter,
+	chatAdapter,
 	theme = "light",
 	defaultFullScreen = false,
 	extensions,
 	service,
 	permissions = [AIAssistantPermission.View],
 	context,
+	messageRenderers,
 }: Pick<
 	IAIAssistantProps,
-	| "adapter"
+	| "chatAdapter"
 	| "theme"
 	| "defaultFullScreen"
 	| "extensions"
 	| "service"
 	| "permissions"
 	| "context"
+	| "messageRenderers"
 >) => {
 	const isMobile = useSyncExternalStore(subscribeMobile, getIsMobile);
 	const [isFullScreen, setIsFullScreen] = useState(defaultFullScreen);
@@ -95,7 +101,7 @@ export const useAIAssistant = ({
 		sendMessage,
 		abort,
 		newChat,
-	} = useChatState(adapter);
+	} = useChatState(chatAdapter);
 
 	const [starterPrompts, setStarterPrompts] = useState<IStarterPrompt[]>([]);
 	const [starterPromptsLoading, setStarterPromptsLoading] = useState(true);
@@ -156,12 +162,11 @@ export const useAIAssistant = ({
 						...(globalResult.data ?? {}),
 						...(userResult.data ?? {}),
 					};
-					if (globalResult.data?.enableTemplateResolution === false) {
-						merged.enableTemplateResolution = false;
-					}
-					if (globalResult.data?.enableDynamicUi === false) {
-						merged.enableDynamicUi = false;
-					}
+					// Global enabledRenderers always wins (admin-controlled)
+					merged.enabledRenderers = {
+						...DEFAULT_ENABLED_RENDERERS,
+						...(globalResult.data?.enabledRenderers ?? {}),
+					};
 					setSettings(merged);
 
 					const globalAgents = globalResult.data?.visibleAgents;
@@ -210,12 +215,11 @@ export const useAIAssistant = ({
 			global: Partial<IAIAssistantSettings>,
 		) => {
 			const merged = { ...DEFAULT_SETTINGS, ...global, ...user };
-			if (global.enableTemplateResolution === false) {
-				merged.enableTemplateResolution = false;
-			}
-			if (global.enableDynamicUi === false) {
-				merged.enableDynamicUi = false;
-			}
+			// Global enabledRenderers always wins (admin-controlled)
+			merged.enabledRenderers = {
+				...DEFAULT_ENABLED_RENDERERS,
+				...(global.enabledRenderers ?? {}),
+			};
 			setSettings(merged);
 
 			const va = global.visibleAgents;
@@ -355,6 +359,7 @@ export const useAIAssistant = ({
 			refreshStarterPrompts,
 			theme,
 			settings,
+			messageRenderers,
 			updateSettings,
 		}),
 		[
@@ -378,6 +383,7 @@ export const useAIAssistant = ({
 			refreshStarterPrompts,
 			theme,
 			settings,
+			messageRenderers,
 			updateSettings,
 		],
 	);

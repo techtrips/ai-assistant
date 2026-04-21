@@ -9,9 +9,10 @@ import {
 	needsResolution,
 	resolveMessage,
 } from "../../AIAssistant.utils";
+import type { IMessageRenderer, RenderResult } from "../../messageRenderers";
 
 export interface IUseResolveMessageResult {
-	resolvedHtml: string | undefined;
+	resolved: RenderResult;
 	isLoading: boolean;
 }
 
@@ -20,16 +21,15 @@ export const useResolveMessage = (
 	service: IAIAssistantService | undefined,
 	theme?: "light" | "dark",
 	settings?: IAIAssistantSettings,
+	renderers?: IMessageRenderer[],
 ): IUseResolveMessageResult => {
-	const skip = !needsResolution(message) || !service;
+	const skip = !needsResolution(message);
 
 	// Read synchronously from the module-level cache — if already resolved
 	// (e.g. StrictMode remount), we skip the loading state entirely.
 	const cached = skip ? null : getResolvedFromCache(message.id);
 
-	const [result, setResult] = useState<{ html: string | undefined } | null>(
-		cached,
-	);
+	const [result, setResult] = useState<{ result: RenderResult } | null>(cached);
 
 	// Derived — no state timing issues
 	const isLoading = !skip && result === null;
@@ -47,16 +47,21 @@ export const useResolveMessage = (
 			return;
 		}
 
-		// biome-ignore lint/style/noNonNullAssertion: guarded by skip check above
-		const svc = serviceRef.current!;
 		let disposed = false;
 
-		resolveMessage(message, svc, undefined, theme, settings)
-			.then((html) => {
-				if (!disposed) setResult({ html });
+		resolveMessage(
+			message,
+			serviceRef.current,
+			undefined,
+			theme,
+			settings,
+			renderers,
+		)
+			.then((resolved) => {
+				if (!disposed) setResult({ result: resolved });
 			})
 			.catch(() => {
-				if (!disposed) setResult({ html: undefined });
+				if (!disposed) setResult({ result: undefined });
 			});
 
 		return () => {
@@ -64,5 +69,5 @@ export const useResolveMessage = (
 		};
 	}, [message.id, skip]);
 
-	return { resolvedHtml: result?.html, isLoading };
+	return { resolved: result?.result, isLoading };
 };

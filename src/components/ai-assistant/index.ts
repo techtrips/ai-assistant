@@ -12,8 +12,30 @@ export type {
 	IChatMessage as ChatMessage,
 	IChatMessageData as ChatMessageData,
 } from "./AIAssistant.types";
-export { AIAssistantPermission, DEFAULT_SETTINGS } from "./AIAssistant.types";
+export {
+	AIAssistantPermission,
+	DEFAULT_ENABLED_RENDERERS,
+	DEFAULT_SETTINGS,
+} from "./AIAssistant.types";
 export { checkPermission } from "./AIAssistant.utils";
+export type {
+	ACElement,
+	IAdaptiveCardAdapter,
+} from "./AdaptiveCardRenderer";
+export { defaultAdaptiveCardAdapter } from "./AdaptiveCardRenderer";
+export type {
+	IMessageRenderer,
+	IRenderContext,
+	RenderResult,
+} from "./messageRenderers";
+export {
+	MessageRendererType,
+	templateRenderer,
+	adaptiveCardRenderer,
+	createAdaptiveCardRenderer,
+	dynamicUiRenderer,
+	defaultMessageRenderers,
+} from "./messageRenderers";
 export type { IAIAssistantContextValue as AIAssistantContextValue } from "./AIAssistantContext";
 export { useAIAssistantContext } from "./AIAssistantContext";
 export { agUiAdapter, defaultMapData } from "./adapters/agUiAdapter";

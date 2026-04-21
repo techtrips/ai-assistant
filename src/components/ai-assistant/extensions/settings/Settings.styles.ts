@@ -50,6 +50,16 @@ export const useSettingsStyles = makeStyles({
 		fontSize: tokens.fontSizeBase200,
 		color: tokens.colorNeutralForeground1,
 	},
+	settingGroup: {
+		display: "flex",
+		flexDirection: "column",
+		...shorthands.gap("2px"),
+	},
+	settingDescription: {
+		fontSize: tokens.fontSizeBase100,
+		color: tokens.colorNeutralForeground3,
+		fontWeight: tokens.fontWeightRegular,
+	},
 	saving: {
 		fontSize: tokens.fontSizeBase100,
 		color: tokens.colorNeutralForeground3,

@@ -4,8 +4,30 @@ import { defineExtension } from "../types";
 import type { IExtensionProps } from "../types";
 import { PageLayout } from "../shared/page-layout";
 import { Shimmer } from "../../../common/shimmer";
+import { DEFAULT_ENABLED_RENDERERS } from "../../AIAssistant.types";
+import { MessageRendererType } from "../../messageRenderers";
 import { useSettingsStyles } from "./Settings.styles";
 import { useSettings } from "./useSettings";
+
+/** Labels for built-in renderer types shown in the settings UI. */
+const RENDERER_LABELS: { type: string; label: string; description: string }[] =
+	[
+		{
+			type: MessageRendererType.Template,
+			label: "Template rendering",
+			description: "Render via stored templates (fast, deterministic)",
+		},
+		{
+			type: MessageRendererType.AdaptiveCard,
+			label: "Adaptive Card rendering",
+			description: "Render structured data as cards (zero LLM cost)",
+		},
+		{
+			type: MessageRendererType.DynamicUi,
+			label: "Dynamic UI generation",
+			description: "Generate HTML via LLM (slow, costs tokens)",
+		},
+	];
 
 const SettingsPanel = ({ onClose }: IExtensionProps) => {
 	const classes = useSettingsStyles();
@@ -17,8 +39,8 @@ const SettingsPanel = ({ onClose }: IExtensionProps) => {
 		isAdmin,
 		allAgentNames,
 		saveUserSetting,
-		saveGlobalSetting,
 		setVisibleAgents,
+		setRendererEnabled,
 	} = useSettings();
 
 	if (loading) {
@@ -119,29 +141,28 @@ const SettingsPanel = ({ onClose }: IExtensionProps) => {
 								)}
 							</div>
 
-							<label className={classes.settingRow}>
-								<span className={classes.settingLabel}>
-									Template resolution
-								</span>
-								<Switch
-									checked={globalSettings.enableTemplateResolution ?? true}
-									onChange={(_, data) =>
-										saveGlobalSetting("enableTemplateResolution", data.checked)
-									}
-								/>
-							</label>
-
-							<label className={classes.settingRow}>
-								<span className={classes.settingLabel}>
-									Dynamic UI generation
-								</span>
-								<Switch
-									checked={globalSettings.enableDynamicUi ?? true}
-									onChange={(_, data) =>
-										saveGlobalSetting("enableDynamicUi", data.checked)
-									}
-								/>
-							</label>
+							{RENDERER_LABELS.map(({ type, label, description }) => {
+								const renderers =
+									globalSettings.enabledRenderers ?? DEFAULT_ENABLED_RENDERERS;
+								const checked =
+									renderers[type] ?? DEFAULT_ENABLED_RENDERERS[type] ?? true;
+								return (
+									<label key={type} className={classes.settingRow}>
+										<span className={classes.settingGroup}>
+											<span className={classes.settingLabel}>{label}</span>
+											<span className={classes.settingDescription}>
+												{description}
+											</span>
+										</span>
+										<Switch
+											checked={checked}
+											onChange={(_, data) =>
+												setRendererEnabled(type, data.checked)
+											}
+										/>
+									</label>
+								);
+							})}
 						</div>
 					</div>
 				)}

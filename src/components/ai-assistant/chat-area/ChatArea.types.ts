@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import type { IChatMessage } from "../AIAssistant.types";
 
 export interface IChatAreaProps {
@@ -7,5 +6,4 @@ export interface IChatAreaProps {
 	streamingText: string;
 	totalMessageCount?: number;
 	onLoadMore?: () => void;
-	renderMessage?: (message: IChatMessage) => ReactNode;
 }

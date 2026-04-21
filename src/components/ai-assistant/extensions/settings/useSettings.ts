@@ -3,6 +3,7 @@ import { useAIAssistantContext } from "../../AIAssistantContext";
 import type { IAIAssistantSettings } from "../../AIAssistant.types";
 import {
 	AIAssistantPermission,
+	DEFAULT_ENABLED_RENDERERS,
 	DEFAULT_SETTINGS,
 } from "../../AIAssistant.types";
 import { checkPermission } from "../../AIAssistant.utils";
@@ -96,6 +97,19 @@ export const useSettings = () => {
 		[userSettings, globalSettings, updateSettings, debouncedSaveGlobal],
 	);
 
+	const setRendererEnabled = useCallback(
+		(rendererType: string, enabled: boolean) => {
+			const current =
+				globalSettings.enabledRenderers ?? DEFAULT_ENABLED_RENDERERS;
+			const nextRenderers = { ...current, [rendererType]: enabled };
+			const next = { ...globalSettings, enabledRenderers: nextRenderers };
+			setGlobalSettings(next);
+			updateSettings(userSettings, next);
+			debouncedSaveGlobal(next);
+		},
+		[userSettings, globalSettings, updateSettings, debouncedSaveGlobal],
+	);
+
 	const setVisibleAgents = useCallback(
 		(agents: string[]) => {
 			const next = { ...globalSettings, visibleAgents: agents };
@@ -115,6 +129,7 @@ export const useSettings = () => {
 		allAgentNames: effectiveAgentNames,
 		saveUserSetting,
 		saveGlobalSetting,
+		setRendererEnabled,
 		setVisibleAgents,
 	};
 };

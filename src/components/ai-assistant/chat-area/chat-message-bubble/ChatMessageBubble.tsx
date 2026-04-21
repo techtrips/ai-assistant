@@ -7,29 +7,17 @@ import { formatTime } from "./ChatMessageBubble.utils";
 import { IsolatedHtmlRenderer } from "./IsolatedHtmlRenderer";
 import { useResolveMessage } from "./useResolveMessage";
 
-export const ChatMessageBubble = ({
-	message,
-	renderMessage,
-}: IChatMessageBubbleProps) => {
+export const ChatMessageBubble = ({ message }: IChatMessageBubbleProps) => {
 	const classes = useChatMessageBubbleStyles();
-	const { service, theme, settings } = useAIAssistantContext();
-	const { resolvedHtml, isLoading } = useResolveMessage(
+	const { service, theme, settings, messageRenderers } =
+		useAIAssistantContext();
+	const { resolved, isLoading } = useResolveMessage(
 		message,
 		service,
 		theme,
 		settings,
+		messageRenderers,
 	);
-
-	// Offer renderMessage for assistant messages that carry structured data.
-	// Data is pre-computed at entry points (adapter / history load) — no parsing here.
-	const hasData = message.role === "assistant" && !!message.data;
-	const renderResult = hasData ? renderMessage?.(message) : undefined;
-	const customContent =
-		renderResult !== null &&
-		renderResult !== undefined &&
-		renderResult !== false
-			? renderResult
-			: undefined;
 
 	if (message.role === "user") {
 		return (
@@ -57,7 +45,7 @@ export const ChatMessageBubble = ({
 		);
 	}
 
-	const html = resolvedHtml;
+	const isHtml = typeof resolved === "string";
 
 	return (
 		<div className={classes.assistantBlock}>
@@ -67,9 +55,7 @@ export const ChatMessageBubble = ({
 				</span>
 				<span>{formatTime(message.timestamp)}</span>
 			</div>
-			{customContent ? (
-				<div className={classes.assistantCard}>{customContent}</div>
-			) : isLoading ? (
+			{isLoading ? (
 				<div
 					className={classes.assistantBubble}
 					style={{ width: "calc(100% - 40px)" }}
@@ -78,10 +64,12 @@ export const ChatMessageBubble = ({
 					<div className={classes.skeletonLine} style={{ width: "75%" }} />
 					<div className={classes.skeletonLine} style={{ width: "50%" }} />
 				</div>
-			) : html ? (
+			) : isHtml ? (
 				<div className={classes.assistantCard}>
-					<IsolatedHtmlRenderer html={html} theme={theme} />
+					<IsolatedHtmlRenderer html={resolved} theme={theme} />
 				</div>
+			) : resolved ? (
+				<div className={classes.assistantCard}>{resolved}</div>
 			) : (
 				<div className={classes.assistantBubble}>
 					{message.content || <RawDataFallback message={message} />}

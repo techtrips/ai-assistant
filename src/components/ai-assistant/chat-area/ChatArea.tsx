@@ -17,7 +17,6 @@ export const ChatArea = ({
 	streamingText,
 	totalMessageCount = 0,
 	onLoadMore,
-	renderMessage,
 }: IChatAreaProps) => {
 	const classes = useChatAreaStyles();
 	const msgClasses = useChatMessageBubbleStyles();
@@ -66,7 +65,7 @@ export const ChatArea = ({
 					estimatedHeight={message.role === "user" ? 60 : 150}
 					eager={index >= eagerThreshold}
 				>
-					<ChatMessageBubble message={message} renderMessage={renderMessage} />
+					<ChatMessageBubble message={message} />
 				</LazyMessage>
 			))}
 			{isStreaming && (

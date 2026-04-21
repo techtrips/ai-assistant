@@ -6,6 +6,7 @@ import type {
 } from "./AIAssistant.types";
 import type { IStarterPrompt } from "./AIAssistant.types";
 import type { IAIAssistantService } from "./AIAssistant.services";
+import type { IMessageRenderer } from "./messageRenderers";
 
 type SetMessagesAction =
 	| IChatMessage[]
@@ -32,6 +33,7 @@ export interface IAIAssistantContextValue {
 	refreshStarterPrompts: () => void;
 	theme: "light" | "dark";
 	settings: IAIAssistantSettings;
+	messageRenderers?: IMessageRenderer[];
 	updateSettings: (
 		user: Partial<IAIAssistantSettings>,
 		global: Partial<IAIAssistantSettings>,

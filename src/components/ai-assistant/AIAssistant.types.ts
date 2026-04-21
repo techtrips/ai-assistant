@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
 import type { IAIAssistantService } from "./AIAssistant.services";
 import type { IChatAdapter } from "./adapters/types";
 import type { AIAssistantExtension } from "./extensions/types";
+import type { IMessageRenderer } from "./messageRenderers";
+import { MessageRendererType } from "./messageRenderers";
 
 /* ── Data models ── */
 
@@ -52,19 +53,28 @@ export enum AIAssistantPermission {
 /* ── Settings ── */
 
 export interface IAIAssistantSettings {
-	/** Disable template resolution (saves LLM cost). Applies globally when set by admin. */
-	enableTemplateResolution: boolean;
-	/** Disable dynamic UI generation via LLM. Applies globally when set by admin. */
-	enableDynamicUi: boolean;
+	/**
+	 * Which built-in renderers are enabled/disabled.
+	 * Keyed by `MessageRendererType` string values (e.g. "template", "adaptiveCard", "dynamicUi").
+	 * Custom renderers are always enabled and cannot be disabled via settings.
+	 * Missing keys default to `true` except `dynamicUi` which defaults to `false`.
+	 */
+	enabledRenderers: Record<string, boolean>;
 	/** Show agent activity (developer mode). User-level setting. */
 	showAgentActivity: boolean;
 	/** Agents visible to all users. Empty = all agents. Global setting. */
 	visibleAgents: string[];
 }
 
+/** Default enabled state for each built-in renderer type. */
+export const DEFAULT_ENABLED_RENDERERS: Record<string, boolean> = {
+	[MessageRendererType.Template]: true,
+	[MessageRendererType.AdaptiveCard]: true,
+	[MessageRendererType.DynamicUi]: false,
+};
+
 export const DEFAULT_SETTINGS: IAIAssistantSettings = {
-	enableTemplateResolution: true,
-	enableDynamicUi: true,
+	enabledRenderers: { ...DEFAULT_ENABLED_RENDERERS },
 	showAgentActivity: false,
 	visibleAgents: [],
 };
@@ -93,7 +103,7 @@ export interface IAIAssistantContext {
 }
 
 export interface IAIAssistantProps {
-	adapter: IChatAdapter;
+	chatAdapter: IChatAdapter;
 	theme?: "light" | "dark";
 	greetingText?: string;
 	headerText?: string;
@@ -101,9 +111,10 @@ export interface IAIAssistantProps {
 	showFullScreenToggle?: boolean;
 	className?: string;
 	extensions?: AIAssistantExtension[];
-	renderMessage?: (message: IChatMessage) => ReactNode;
 	service?: IAIAssistantService;
 	permissions?: AIAssistantPermission[];
 	context?: IAIAssistantContext;
+	/** Message renderer pipeline. Pass only the renderers you want. If omitted, all defaults apply (filtered by settings). Custom-type renderers always run first. */
+	messageRenderers?: IMessageRenderer[];
 	onClose?: () => void;
 }

@@ -23,7 +23,6 @@ export const AIAssistant = (props: IAIAssistantProps) => {
 		headerText = "AI Assistant",
 		showFullScreenToggle = true,
 		className,
-		renderMessage,
 		onClose,
 	} = props;
 
@@ -76,7 +75,6 @@ export const AIAssistant = (props: IAIAssistantProps) => {
 						streamingText={streamingText}
 						totalMessageCount={totalMessageCount}
 						onLoadMore={loadOlderMessages}
-						renderMessage={renderMessage}
 					/>
 					{activeParameterizedPrompt && (
 						<PromptParameterForm
