@@ -101,7 +101,7 @@ export const Home = () => {
 							)}
 						>
 							<AIAssistant
-								adapter={adapter}
+								chatAdapter={adapter}
 								permissions={permissions}
 								service={assistantService}
 								onClose={handleToggleAssistant}
