@@ -14,6 +14,7 @@ A React component library for building agent-based AI assistants. Provides a pro
 - [Quick Start](#quick-start)
 - [Components](#components)
 - [Adapters](#adapters)
+- [Message Rendering](#message-rendering)
 - [Extensions](#extensions)
 - [Dependencies](#dependencies)
 - [Browser Support](#browser-support)
@@ -31,7 +32,7 @@ A React component library for building agent-based AI assistants. Provides a pro
 - Mobile responsive layout — fullscreen overlay on small screens, side panel on desktop
 - Plug-in extension system for conversation history, starter prompts, templates, and custom views
 - Starter prompt chips for guided onboarding
-- Custom message rendering via `renderMessage` prop
+- **Pluggable message rendering pipeline** — Templates (DB lookup), Adaptive Cards (deterministic, zero LLM cost), and LLM-generated dynamic UI, plus your own custom renderers
 - JSON-driven template rendering with built-in control types and data binding
 - Visual template designer with drag-and-drop, live preview, and JSON editing
 - Built on Microsoft Fluent UI for a consistent, accessible design system
@@ -50,12 +51,30 @@ npm install @techtrips/ai-assistant
 ## Quick Start
 
 ```tsx
-import { AIAssistant, agUiAdapter, AIAssistantPermission } from "@techtrips/ai-assistant";
+import {
+  AIAssistant,
+  agUiAdapter,
+  AIAssistantPermission,
+  defaultMessageRenderers,
+  MessageRendererType,
+} from "@techtrips/ai-assistant";
+import type { IMessageRenderer } from "@techtrips/ai-assistant";
 
 const adapter = agUiAdapter({
   url: "https://agent.example.com/agui",
   getToken: () => getAccessToken(),
 });
+
+// Optional: a custom renderer always runs first
+const weatherRenderer: IMessageRenderer = {
+  type: MessageRendererType.Custom,
+  async render(ctx) {
+    if (ctx.message.data?.templateId === "weather") {
+      return <WeatherCard payload={ctx.message.data.payload} />;
+    }
+    return undefined; // skip — let the next renderer handle it
+  },
+};
 
 function App() {
   return (
@@ -66,6 +85,7 @@ function App() {
       agents={[{ name: "TechTrips Agent", description: "Handles TechTrips queries" }]}
       permissions={[AIAssistantPermission.View]}
       theme="dark"
+      messageRenderers={[weatherRenderer, ...defaultMessageRenderers]}
       onClose={() => console.log("closed")}
     />
   );
@@ -103,6 +123,73 @@ See the [AIAssistant docs](https://github.com/techtrips/ai-assistant/blob/main/d
 
 ---
 
+## Message Rendering
+
+Assistant messages can carry structured `data` (`{ payload?, templateId? }`) alongside their text. The **message rendering pipeline** transforms that data into rich visual output through an ordered list of `IMessageRenderer`s. Custom renderers always run first; built-ins are filtered by `IAIAssistantSettings.enabledRenderers`. The first renderer to return a non-`undefined` result wins, and results are cached per message ID.
+
+### Built-in renderers
+
+| Renderer | Type key | Behaviour | Default enabled |
+|----------|----------|-----------|-----------------|
+| `templateRenderer` | `template` | Fetches a template by `templateId` from the DB via `IAIAssistantService` | Yes |
+| `adaptiveCardRenderer` | `adaptiveCard` | Renders `payload` using the [Adaptive Card SDK](https://adaptivecards.io/) — deterministic, zero LLM cost | Yes |
+| `dynamicUiRenderer` | `dynamicUi` | Sends `payload` to the LLM to generate HTML UI on the fly | No |
+
+```tsx
+import {
+  AIAssistant,
+  agUiAdapter,
+  defaultMessageRenderers,
+  templateRenderer,
+  adaptiveCardRenderer,
+  MessageRendererType,
+} from "@techtrips/ai-assistant";
+import type { IMessageRenderer } from "@techtrips/ai-assistant";
+
+// 1. Use the defaults (template + adaptive card on, dynamic UI off)
+<AIAssistant chatAdapter={adapter} />
+
+// 2. Restrict the pipeline to specific renderers only
+<AIAssistant
+  chatAdapter={adapter}
+  messageRenderers={[templateRenderer, adaptiveCardRenderer]}
+/>
+
+// 3. Add your own custom renderer (always runs first)
+const myRenderer: IMessageRenderer = {
+  type: MessageRendererType.Custom,
+  async render(ctx) {
+    if (ctx.message.data?.templateId === "weather") {
+      return <WeatherCard payload={ctx.message.data.payload} />;
+    }
+    return undefined; // skip — let the next renderer handle it
+  },
+};
+
+<AIAssistant
+  chatAdapter={adapter}
+  messageRenderers={[myRenderer, ...defaultMessageRenderers]}
+/>;
+```
+
+### Customising Adaptive Cards
+
+Provide an `IAdaptiveCardAdapter` to override host config, layout, or post-processing without writing a renderer from scratch:
+
+```tsx
+import { createAdaptiveCardRenderer } from "@techtrips/ai-assistant";
+
+const myACRenderer = createAdaptiveCardRenderer({
+  buildHostConfig: (theme) => ({ /* AC host config */ }),
+  dataToCardBody: (data) => [ /* AC body elements */ ],
+  postProcess: (root, cardJson) => { /* DOM tweaks */ },
+});
+```
+
+See the [Message Rendering Pipeline](https://github.com/techtrips/ai-assistant/blob/main/docs/AIAssistant.md#message-rendering-pipeline) section in the AIAssistant docs for the full `IMessageRenderer`, `IRenderContext`, and `IAdaptiveCardAdapter` API.
+
+---
+
 ## Extensions
 
 Extensions add sidebar navigation items to the assistant. Built-in extensions:
@@ -112,6 +199,7 @@ Extensions add sidebar navigation items to the assistant. Built-in extensions:
 | `ConversationHistory` | Browse and load past conversations. | `View` |
 | `StarterPrompts` | Manage starter prompts for guided onboarding. | `ManageStarterPrompts` |
 | `TemplateRenderer` | Manage and render structured templates. | `ManageTemplates` |
+| `Settings` | Toggle which message renderers (template / adaptive card / dynamic UI) are enabled, manage agent visibility, and developer mode. | `ManageSettings` |
 
 ```tsx
 import { ConversationHistory, StarterPrompts, TemplateRenderer, AIAssistantService } from "@techtrips/ai-assistant";
