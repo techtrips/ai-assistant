@@ -127,63 +127,99 @@ See the [AIAssistant docs](https://github.com/techtrips/ai-assistant/blob/main/d
 
 Assistant messages can carry structured `data` (`{ payload?, templateId? }`) alongside their text. The **message rendering pipeline** transforms that data into rich visual output through an ordered list of `IMessageRenderer`s. Custom renderers always run first; built-ins are filtered by `IAIAssistantSettings.enabledRenderers`. The first renderer to return a non-`undefined` result wins, and results are cached per message ID.
 
-### Built-in renderers
+### What `defaultMessageRenderers` contains
 
-| Renderer | Type key | Behaviour | Default enabled |
-|----------|----------|-----------|-----------------|
-| `templateRenderer` | `template` | Fetches a template by `templateId` from the DB via `IAIAssistantService` | Yes |
-| `adaptiveCardRenderer` | `adaptiveCard` | Renders `payload` using the [Adaptive Card SDK](https://adaptivecards.io/) — deterministic, zero LLM cost | Yes |
-| `dynamicUiRenderer` | `dynamicUi` | Sends `payload` to the LLM to generate HTML UI on the fly | No |
+`defaultMessageRenderers` is an ordered array of three built-in renderers, exported as-is so consumers can spread, slice, or replace it:
+
+```ts
+export const defaultMessageRenderers: IMessageRenderer[] = [
+  templateRenderer,      // type: "template"      — fetches template by templateId from IAIAssistantService
+  adaptiveCardRenderer,  // type: "adaptiveCard"  — renders payload via the Adaptive Card SDK
+  dynamicUiRenderer,     // type: "dynamicUi"     — asks the LLM to generate scoped HTML for payload
+];
+```
+
+| Renderer | Type key | Triggers when… | Default enabled |
+|----------|----------|----------------|-----------------|
+| `templateRenderer` | `template` | `message.data.templateId` is set and a template with that ID exists in the DB | Yes |
+| `adaptiveCardRenderer` | `adaptiveCard` | `message.data.payload` is set (and `templateRenderer` did not handle it) | Yes |
+| `dynamicUiRenderer` | `dynamicUi` | `message.data.payload` is set and earlier renderers skipped — generates HTML via `IAIAssistantService.generateDynamicUi` | No |
+
+Each built-in is also exported individually (`templateRenderer`, `adaptiveCardRenderer`, `dynamicUiRenderer`, `createAdaptiveCardRenderer`) so you can mix and match. Whether a built-in actually runs is gated by `IAIAssistantSettings.enabledRenderers` — toggleable at runtime from the **Settings** extension.
+
+### Customising the pipeline
+
+You have four levers, from least to most invasive:
+
+**1. Toggle built-ins via settings.** Pass `settings.enabledRenderers` (or let the user toggle via the Settings extension) — no code changes needed:
+
+```ts
+const settings: IAIAssistantSettings = {
+  enabledRenderers: { template: true, adaptiveCard: true, dynamicUi: true },
+  showAgentActivity: false,
+  visibleAgents: [],
+};
+```
+
+**2. Restrict or reorder built-ins.** Pass an explicit `messageRenderers` array — only those listed are considered:
+
+```tsx
+import { templateRenderer, adaptiveCardRenderer } from "@techtrips/ai-assistant";
+
+<AIAssistant
+  chatAdapter={adapter}
+  messageRenderers={[templateRenderer, adaptiveCardRenderer]}
+/>;
+```
+
+**3. Add a custom renderer alongside the defaults.** Custom renderers (`type: MessageRendererType.Custom`) always run first regardless of array position — return `undefined` to fall through to the built-ins:
 
 ```tsx
 import {
   AIAssistant,
-  agUiAdapter,
   defaultMessageRenderers,
-  templateRenderer,
-  adaptiveCardRenderer,
   MessageRendererType,
 } from "@techtrips/ai-assistant";
-import type { IMessageRenderer } from "@techtrips/ai-assistant";
+import type { IMessageRenderer, IRenderContext } from "@techtrips/ai-assistant";
 
-// 1. Use the defaults (template + adaptive card on, dynamic UI off)
-<AIAssistant chatAdapter={adapter} />
-
-// 2. Restrict the pipeline to specific renderers only
-<AIAssistant
-  chatAdapter={adapter}
-  messageRenderers={[templateRenderer, adaptiveCardRenderer]}
-/>
-
-// 3. Add your own custom renderer (always runs first)
-const myRenderer: IMessageRenderer = {
+const weatherRenderer: IMessageRenderer = {
   type: MessageRendererType.Custom,
-  async render(ctx) {
+  async render(ctx: IRenderContext) {
+    // ctx: { message, service?, theme, settings, model? }
     if (ctx.message.data?.templateId === "weather") {
       return <WeatherCard payload={ctx.message.data.payload} />;
     }
-    return undefined; // skip — let the next renderer handle it
+    return undefined; // skip — fall through to defaults
   },
 };
 
 <AIAssistant
   chatAdapter={adapter}
-  messageRenderers={[myRenderer, ...defaultMessageRenderers]}
+  messageRenderers={[weatherRenderer, ...defaultMessageRenderers]}
 />;
 ```
 
-### Customising Adaptive Cards
+A renderer can return any of: an HTML string, a React node, or `undefined` to skip. The first non-`undefined` result wins, and results are cached per message ID.
 
-Provide an `IAdaptiveCardAdapter` to override host config, layout, or post-processing without writing a renderer from scratch:
+**4. Swap the Adaptive Card adapter.** To keep the pipeline shape but change how Adaptive Cards look or behave, use `createAdaptiveCardRenderer` with a custom `IAdaptiveCardAdapter`:
 
 ```tsx
-import { createAdaptiveCardRenderer } from "@techtrips/ai-assistant";
+import {
+  createAdaptiveCardRenderer,
+  templateRenderer,
+  dynamicUiRenderer,
+} from "@techtrips/ai-assistant";
 
 const myACRenderer = createAdaptiveCardRenderer({
   buildHostConfig: (theme) => ({ /* AC host config */ }),
   dataToCardBody: (data) => [ /* AC body elements */ ],
   postProcess: (root, cardJson) => { /* DOM tweaks */ },
 });
+
+<AIAssistant
+  chatAdapter={adapter}
+  messageRenderers={[templateRenderer, myACRenderer, dynamicUiRenderer]}
+/>;
 ```
 
 See the [Message Rendering Pipeline](https://github.com/techtrips/ai-assistant/blob/main/docs/AIAssistant.md#message-rendering-pipeline) section in the AIAssistant docs for the full `IMessageRenderer`, `IRenderContext`, and `IAdaptiveCardAdapter` API.
