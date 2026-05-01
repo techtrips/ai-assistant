@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.1.1](#111--2026-05-01) | 2026-05-01 | Revert lazy loading of `marked` and `dompurify` (kept lazy for `adaptivecards`); markdown messages were rendering as raw text in some bundles |
 | [1.1.0](#110--2026-05-01) | 2026-05-01 | Scalability pass: lazy-loaded heavy deps, abortable render pipeline, sanitize memoization, shared adapter HTTP helpers, `sideEffects` for tree-shaking |
 | [1.0.1](#101--2026-05-01) | 2026-05-01 | Structured chat error events with `onError` prop and `ChatErrorCode` codes, themed sidebar history scrollbar |
 | [1.0.0](#100--2026-04-21) | 2026-04-21 | Pluggable message rendering pipeline, Adaptive Card renderer, unified settings, `chatAdapter` prop rename |
@@ -22,7 +23,21 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 
 ---
-1.0] — 2026-05-01
+
+## [1.1.1] — 2026-05-01
+
+### Fixed
+
+- Markdown messages were rendering as raw text in some consumer bundles. Reverted the dynamic `import("marked")` introduced in 1.1.0 to a static import — markdown is the default fallback for nearly every assistant reply, so deferring it offered little benefit. Same for `dompurify`, which sanitises every HTML render.
+- `IsolatedHtmlRenderer` no longer goes through an async-load + `useState` round-trip; sanitisation is now a synchronous `useMemo` keyed by the raw HTML.
+
+### Changed
+
+- `adaptivecards` is still loaded lazily, since it is the heaviest dependency (~150 kB gz) and only fires when an Adaptive Card payload is received.
+
+---
+
+## [1.1.0] — 2026-05-01
 
 ### Added
 
@@ -32,7 +47,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 ### Changed
 
-- **Lazy-loaded heavy dependencies.** `marked`, `dompurify` and `adaptivecards` (~250 kB combined) are no longer imported eagerly. They load via dynamic `import()` the first time the matching renderer fires, so apps that never receive markdown / HTML / Adaptive-Card payloads pay zero bundle cost.
+- **Lazy-loaded heavy dependencies.** `marked`, `dompurify` and `adaptivecards` (~250 kB combined) are no longer imported eagerly. They load via dynamic `import()` the first time the matching renderer fires, so apps that never receive markdown / HTML / Adaptive-Card payloads pay zero bundle cost. *(See 1.1.1 — `marked` and `dompurify` were reverted to static imports.)*
 - `IsolatedHtmlRenderer` now memoizes the sanitized HTML keyed by the raw input. Theme toggles, resizes and unrelated re-renders no longer re-run DOMPurify or rewrite the shadow root.
 
 ### Breaking
@@ -41,7 +56,6 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 ---
 
-## [1.
 ## [1.0.1] — 2026-05-01
 
 ### Added

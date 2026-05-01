@@ -1,6 +1,6 @@
 # @techtrips/ai-assistant
 
-[![version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/docs/ChangeLog.md)
+[![version](https://img.shields.io/badge/version-1.1.1-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/docs/ChangeLog.md)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/LICENSE)
 
 A React component library for building agent-based AI assistants. Provides a production-ready, adapter-driven conversational UI with streaming support, an extension system, and template rendering — all built on [Fluent UI](https://react.fluentui.dev/) and the [AG-UI protocol](https://github.com/ag-ui-protocol).
@@ -34,7 +34,7 @@ A React component library for building agent-based AI assistants. Provides a pro
 - Plug-in extension system for conversation history, starter prompts, templates, and custom views
 - Starter prompt chips for guided onboarding
 - **Pluggable message rendering pipeline** — Templates (DB lookup), Adaptive Cards (deterministic, zero LLM cost), LLM-generated dynamic UI, and GitHub-flavoured Markdown, plus your own custom renderers
-- **Lazy-loaded heavy deps** — `marked`, `dompurify`, and `adaptivecards` are only fetched on first use, so apps that don't need them pay zero bundle cost
+- **Lazy-loaded Adaptive Cards** — the Adaptive Cards SDK (~150 kB gz) is only fetched the first time an Adaptive Card payload arrives
 - **Abortable rendering** — every render context carries an `AbortSignal` that fires on unmount, so async renderers can cancel in-flight fetches
 - **Sanitized by default** — HTML responses pass through DOMPurify before being injected into a shadow root
 - JSON-driven template rendering with built-in control types and data binding
@@ -299,9 +299,9 @@ const service = new AIAssistantService({ baseUrl: apiUrl, getToken });
 | `@ag-ui/client` | AG-UI protocol client for agent communication |
 | `@ag-ui/core` | AG-UI protocol core types and utilities |
 | `@fluentui/react-components` | Microsoft Fluent UI React component library |
-| `adaptivecards` | Adaptive Cards SDK \u2014 lazy-loaded on first use |
-| `dompurify` | HTML sanitizer \u2014 lazy-loaded on first HTML render |
-| `marked` | GitHub-flavoured Markdown parser \u2014 lazy-loaded on first markdown render |
+| `adaptivecards` | Adaptive Cards SDK — lazy-loaded on first use |
+| `dompurify` | HTML sanitizer — used by `IsolatedHtmlRenderer` |
+| `marked` | GitHub-flavoured Markdown parser — used by `markdownRenderer` |
 | `react` | React library |
 | `react-dom` | React DOM renderer |
 | `react-router` | Declarative routing for React |

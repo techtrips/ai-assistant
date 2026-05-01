@@ -1,15 +1,8 @@
+import { marked } from "marked";
 import type { IAIAssistantService } from "./AIAssistant.services";
 import type { IAIAssistantSettings, IChatMessage } from "./AIAssistant.types";
 import type { IAdaptiveCardAdapter } from "./AdaptiveCardRenderer";
 import { renderAdaptiveCard } from "./AdaptiveCardRenderer";
-
-// Lazy-load `marked` only when the markdown renderer actually fires.
-type MarkedModule = typeof import("marked");
-let markedPromise: Promise<MarkedModule> | undefined;
-const loadMarked = (): Promise<MarkedModule> => {
-	if (!markedPromise) markedPromise = import("marked");
-	return markedPromise;
-};
 
 // ---------------------------------------------------------------------------
 // Message renderer — pluggable pipeline for rendering assistant messages
@@ -214,7 +207,6 @@ export const markdownRenderer: IMessageRenderer = {
 		const content = ctx.message.content;
 		if (typeof content !== "string" || content.length === 0) return undefined;
 		try {
-			const { marked } = await loadMarked();
 			const html = marked.parse(content, {
 				async: false,
 				breaks: true,

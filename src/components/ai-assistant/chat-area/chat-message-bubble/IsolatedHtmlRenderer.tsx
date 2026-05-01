@@ -1,12 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-
-// DOMPurify is ~50kb gz; loaded on first sanitize.
-type DomPurifyModule = typeof import("dompurify");
-let dompurifyPromise: Promise<DomPurifyModule> | undefined;
-const loadDomPurify = (): Promise<DomPurifyModule> => {
-	if (!dompurifyPromise) dompurifyPromise = import("dompurify");
-	return dompurifyPromise;
-};
+import DOMPurify from "dompurify";
+import { useEffect, useMemo, useRef } from "react";
 
 type IsolatedHtmlRendererProps = {
 	html: string;
@@ -58,49 +51,16 @@ th { font-weight: 600; color: ${vars.muted}; font-size: 12px; text-transform: up
 </style>`;
 };
 
-// Tiny per-renderer sanitization cache keyed by raw HTML. Memoization at
-// the component level avoids re-sanitizing the same chat reply on every
-// theme toggle / resize re-render.
-const useSanitized = (html: string, trusted: boolean): string | undefined => {
-	const cacheRef = useRef<{ key: string; out: string } | null>(null);
-	const [out, setOut] = useState<string | undefined>(() =>
-		trusted
-			? html
-			: cacheRef.current?.key === html
-				? cacheRef.current.out
-				: undefined,
-	);
-
-	useEffect(() => {
-		if (trusted) {
-			setOut(html);
-			return;
-		}
-		if (cacheRef.current?.key === html) {
-			setOut(cacheRef.current.out);
-			return;
-		}
-		let cancelled = false;
-		(async () => {
-			const mod = await loadDomPurify();
-			const purify = (mod.default ?? (mod as unknown as DomPurifyModule)) as {
-				sanitize: (s: string, opts?: unknown) => string;
-			};
-			const safe = purify.sanitize(html, {
-				USE_PROFILES: { html: true },
-				ADD_ATTR: ["target", "rel"],
-			});
-			if (cancelled) return;
-			cacheRef.current = { key: html, out: safe };
-			setOut(safe);
-		})();
-		return () => {
-			cancelled = true;
-		};
+// Memoize sanitized output keyed by raw HTML so theme toggles / unrelated
+// re-renders don't re-run DOMPurify.
+const useSanitized = (html: string, trusted: boolean): string =>
+	useMemo(() => {
+		if (trusted) return html;
+		return DOMPurify.sanitize(html, {
+			USE_PROFILES: { html: true },
+			ADD_ATTR: ["target", "rel"],
+		});
 	}, [html, trusted]);
-
-	return out;
-};
 
 export const IsolatedHtmlRenderer = ({
 	html,
@@ -114,7 +74,7 @@ export const IsolatedHtmlRenderer = ({
 
 	useEffect(() => {
 		const host = hostRef.current;
-		if (!host || safeHtml === undefined) return;
+		if (!host) return;
 		const shadowRoot = host.shadowRoot ?? host.attachShadow({ mode: "open" });
 		shadowRoot.innerHTML = stylesheet + safeHtml;
 	}, [safeHtml, stylesheet]);
