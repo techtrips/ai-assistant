@@ -1,9 +1,17 @@
 import { mergeClasses } from "@fluentui/react-components";
 import {
+	Popover,
+	PopoverSurface,
+	PopoverTrigger,
+} from "@fluentui/react-components";
+import {
 	AttachRegular,
+	LightbulbRegular,
+	Search16Regular,
 	SendRegular,
 	Stop16Filled,
 } from "@fluentui/react-icons";
+import { useMemo, useState } from "react";
 import { VoiceInput } from "./voice-input";
 import { useChatInputStyles } from "./ChatInput.styles";
 import { useChatInput } from "./useChatInput";
@@ -40,6 +48,21 @@ export const ChatInput = ({
 		handleFocus,
 		handleBlur,
 	} = useChatInput(isStreaming, onSend, starterPrompts, onSelectPrompt);
+
+	const [promptsOpen, setPromptsOpen] = useState(false);
+	const [promptSearch, setPromptSearch] = useState("");
+	const promptsCount = starterPrompts?.length ?? 0;
+
+	const filteredPickerPrompts = useMemo(() => {
+		const list = starterPrompts ?? [];
+		const q = promptSearch.trim().toLowerCase();
+		if (!q) return list;
+		return list.filter(
+			(sp) =>
+				sp.title.toLowerCase().includes(q) ||
+				(sp.prompt?.toLowerCase().includes(q) ?? false),
+		);
+	}, [starterPrompts, promptSearch]);
 
 	return (
 		<div className={classes.composerContainer}>
@@ -95,6 +118,64 @@ export const ChatInput = ({
 							style={{ display: "none" }}
 							onChange={(e) => handleFileChange(e, onFileSelect)}
 						/>
+						{promptsCount > 0 && (
+							<Popover
+								open={promptsOpen}
+								onOpenChange={(_, data) => setPromptsOpen(data.open)}
+								positioning={{ position: "above", align: "start" }}
+								trapFocus
+							>
+								<PopoverTrigger disableButtonEnhancement>
+									<button
+										type="button"
+										className={classes.iconButton}
+										title="Starter prompts"
+										aria-label="Starter prompts"
+									>
+										<LightbulbRegular fontSize={20} />
+									</button>
+								</PopoverTrigger>
+								<PopoverSurface className={classes.promptsPopover}>
+									<div className={classes.promptsSearchWrap}>
+										<Search16Regular
+											fontSize={14}
+											className={classes.promptsSearchIcon}
+										/>
+										<input
+											autoFocus
+											className={classes.promptsSearchInput}
+											placeholder="Search prompts..."
+											value={promptSearch}
+											onChange={(e) => setPromptSearch(e.target.value)}
+										/>
+									</div>
+									<div className={classes.promptsList}>
+										{filteredPickerPrompts.length === 0 ? (
+											<div className={classes.promptsEmpty}>
+												No prompts match.
+											</div>
+										) : (
+											filteredPickerPrompts.map((sp, idx) => (
+												<button
+													key={sp.id ?? idx}
+													type="button"
+													className={classes.promptsItem}
+													onClick={() => {
+														setPromptsOpen(false);
+														setPromptSearch("");
+														handleSelectSuggestion(sp);
+													}}
+												>
+													<div className={classes.promptsItemTitle}>
+														{sp.title}
+													</div>
+												</button>
+											))
+										)}
+									</div>
+								</PopoverSurface>
+							</Popover>
+						)}
 					</div>
 					<div className={classes.rightTools}>
 						<VoiceInput

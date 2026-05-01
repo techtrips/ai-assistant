@@ -51,4 +51,14 @@ export const useChatAreaStyles = makeStyles({
 	typingDot3: {
 		animationDelay: "0.32s",
 	},
+	statusLabel: {
+		marginLeft: "8px",
+		fontSize: "12px",
+		color: "var(--colorNeutralForeground3, #616161)",
+		fontStyle: "italic",
+		whiteSpace: "nowrap",
+		overflow: "hidden",
+		textOverflow: "ellipsis",
+		maxWidth: "260px",
+	},
 });

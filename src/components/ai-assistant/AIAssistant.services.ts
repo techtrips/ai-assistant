@@ -54,6 +54,74 @@ export interface IConversationHistoryResponse {
 	pageSize: number;
 }
 
+/**
+ * One row in the agent activity log for a thread. Captured server-side
+ * from the AG-UI event stream and replayed back via
+ * `IConversationService.getThreadEvents`. The shape intentionally mirrors
+ * what a debug pane wants to render — not the raw AG-UI event union.
+ */
+export interface IThreadEvent {
+	/** Stable id for React keying / dedup. */
+	id: string;
+	/** ISO timestamp the event occurred. */
+	timestamp: string;
+	/** Optional run grouping (one user turn = one runId). */
+	runId?: string;
+	/**
+	 * Logical agent that produced this event. For multi-agent flows this
+	 * lets the UI label rows ("Orchestrator", "Ordering", etc.). For
+	 * single-agent setups, leave undefined or set to the agent's name.
+	 */
+	agent?: string;
+	/**
+	 * What kind of activity this row represents.
+	 * - `tool-call` / `tool-result`: local function tool invoked in-process by the agent.
+	 * - `mcp-call` / `mcp-result`: tool exposed by a remote MCP server.
+	 * - `a2a-call` / `a2a-result`: delegation to another agent over the A2A protocol.
+	 */
+	role:
+		| "user"
+		| "assistant"
+		| "tool-call"
+		| "tool-result"
+		| "mcp-call"
+		| "mcp-result"
+		| "a2a-call"
+		| "a2a-result"
+		| "error";
+	/** Tool name when the row represents a tool/MCP/A2A invocation. */
+	toolName?: string;
+	/**
+	 * Human-readable / JSON-stringified content. The viewer renders this
+	 * verbatim in a monospace block; the server is expected to format it
+	 * for display (pretty-printed JSON for tool results, plain text for
+	 * assistant prose, etc.).
+	 */
+	content: string;
+}
+
+export interface IThreadEventsResponse {
+	threadId: string;
+	events: IThreadEvent[];
+	totalCount: number;
+	page: number;
+	pageSize: number;
+}
+
+export interface IThreadTurn {
+	/** Run id (matches IThreadEvent.runId). */
+	runId: string;
+	/** Truncated user prompt to display in the dropdown. */
+	label: string;
+	/** ISO timestamp of the user message that started this turn. */
+	firstSeen: string;
+}
+
+export interface IThreadTurnsResponse {
+	threadId: string;
+	turns: IThreadTurn[];
+}
+
 export interface IConversationService {
 	getConversationHistory: (
 		page?: number,
@@ -65,6 +133,23 @@ export interface IConversationService {
 		page?: number,
 		pageSize?: number,
 	) => Promise<IEntity<IConversationMessagesResponse>>;
+	/**
+	 * Fetch the raw activity log (user + assistant turns + tool calls /
+	 * results) for a thread. Drives the Raw Logs side panel. Optional —
+	 * services that don't expose this endpoint can omit it and the panel
+	 * will display a friendly "not available" message.
+	 */
+	getThreadEvents?: (
+		threadId: string,
+		page?: number,
+		pageSize?: number,
+	) => Promise<IEntity<IThreadEventsResponse>>;
+	/**
+	 * Fetch the list of distinct turns (one per user message) for a
+	 * thread. Used to populate the Logs panel turn dropdown without
+	 * paginating through all events. Optional.
+	 */
+	getThreadTurns?: (threadId: string) => Promise<IEntity<IThreadTurnsResponse>>;
 	generateDynamicUi: (
 		data: string,
 		prompt: string,
@@ -243,6 +328,34 @@ export class AIAssistantService implements IAIAssistantService {
 	): Promise<IEntity<IConversationMessagesResponse>> {
 		return this.fetchApi<IConversationMessagesResponse>(
 			`/conversations/${threadId}/messages?page=${page}&pageSize=${pageSize}`,
+			"GET",
+		);
+	}
+
+	/**
+	 * Default implementation calls `GET /conversations/{threadId}/events`.
+	 * Backends that don't expose that endpoint should override this method
+	 * (or delete the property) when constructing the service.
+	 */
+	async getThreadEvents(
+		threadId: string,
+		page = 1,
+		pageSize = 50,
+	): Promise<IEntity<IThreadEventsResponse>> {
+		return this.fetchApi<IThreadEventsResponse>(
+			`/conversations/${threadId}/events?page=${page}&pageSize=${pageSize}`,
+			"GET",
+		);
+	}
+
+	/**
+	 * Default implementation calls `GET /conversations/{threadId}/turns`.
+	 */
+	async getThreadTurns(
+		threadId: string,
+	): Promise<IEntity<IThreadTurnsResponse>> {
+		return this.fetchApi<IThreadTurnsResponse>(
+			`/conversations/${threadId}/turns`,
 			"GET",
 		);
 	}

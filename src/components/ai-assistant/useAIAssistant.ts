@@ -21,6 +21,7 @@ import {
 import { checkPermission } from "./AIAssistant.utils";
 import type { IAIAssistantContextValue } from "./AIAssistantContext";
 import { ConversationHistory } from "./extensions/conversation-history";
+import { RawLogs } from "./extensions/raw-logs";
 import { Settings } from "./extensions/settings";
 import { StarterPrompts } from "./extensions/starter-prompts";
 import { TemplateRenderer } from "./extensions/template-renderer";
@@ -37,6 +38,7 @@ const DEFAULT_EXTENSIONS: AIAssistantExtension[] = [
 	ConversationHistory,
 	StarterPrompts,
 	TemplateRenderer,
+	RawLogs,
 	Settings,
 ];
 
@@ -100,6 +102,7 @@ export const useAIAssistant = ({
 		setThreadId,
 		isStreaming,
 		streamingText,
+		statusLabel,
 		sendMessage,
 		abort,
 		newChat,
@@ -476,6 +479,7 @@ export const useAIAssistant = ({
 		messages,
 		isStreaming,
 		streamingText,
+		statusLabel,
 		totalMessageCount,
 		loadOlderMessages,
 		sendMessage,
@@ -484,6 +488,7 @@ export const useAIAssistant = ({
 		activeParameterizedPrompt,
 		dismissParameterizedPrompt,
 		selectPrompt,
+		threadId,
 
 		// Context
 		contextValue,

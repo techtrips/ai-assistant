@@ -132,9 +132,11 @@ export const defaultMapData: MapDataFn = (toolCalls) => {
 		}
 	}
 	const templateId = toolCalls[0]?.name || undefined;
+	const toolsUsed = toolCalls.map((tc) => tc.name).filter(Boolean);
 	return {
 		...(payload && { payload }),
 		...(templateId && { templateId }),
+		...(toolsUsed.length > 0 && { toolsUsed }),
 	};
 };
 
@@ -238,18 +240,51 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 						(params.event as { name?: string }).name ??
 						"";
 					toolCalls.set(id, { id, name });
+					if (name) {
+						push({
+							type: "status",
+							label: `Calling ${name}\u2026`,
+							key: `tool:${id}`,
+						});
+					}
 				},
 				onToolCallArgsEvent: (params) => {
 					const tc = toolCalls.get(params.event.toolCallId);
 					if (tc) tc.args = (tc.args ?? "") + (params.event.delta ?? "");
 				},
-				onToolCallEndEvent: () => {},
+				onToolCallEndEvent: (params) => {
+					push({
+						type: "status",
+						label: "",
+						done: true,
+						key: `tool:${params.event.toolCallId}`,
+					});
+				},
 				onToolCallResultEvent: (params) => {
 					const tc = toolCalls.get(params.event.toolCallId);
 					if (tc) tc.result = params.event.content;
 				},
-				onStepStartedEvent: () => {},
-				onStepFinishedEvent: () => {},
+				onStepStartedEvent: (params) => {
+					const stepName =
+						(params.event as { stepName?: string }).stepName ?? "";
+					if (stepName) {
+						push({
+							type: "status",
+							label: `${stepName}\u2026`,
+							key: `step:${stepName}`,
+						});
+					}
+				},
+				onStepFinishedEvent: (params) => {
+					const stepName =
+						(params.event as { stepName?: string }).stepName ?? "";
+					push({
+						type: "status",
+						label: "",
+						done: true,
+						key: stepName ? `step:${stepName}` : undefined,
+					});
+				},
 			};
 
 			const abortController = new AbortController();
@@ -289,10 +324,7 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 					}
 				})
 				.finally(() => {
-					request.abortSignal?.removeEventListener(
-						"abort",
-						onConsumerAbort,
-					);
+					request.abortSignal?.removeEventListener("abort", onConsumerAbort);
 					const data = buildData();
 					if (streamedText || data) {
 						push({

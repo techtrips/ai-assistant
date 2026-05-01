@@ -15,6 +15,7 @@ export const ChatArea = ({
 	messages,
 	isStreaming,
 	streamingText,
+	statusLabel,
 	totalMessageCount = 0,
 	onLoadMore,
 }: IChatAreaProps) => {
@@ -84,6 +85,9 @@ export const ChatArea = ({
 										className={mergeClasses(classes.typingDot, classes[cls])}
 									/>
 								))}
+								{statusLabel && (
+									<span className={classes.statusLabel}>{statusLabel}</span>
+								)}
 							</div>
 						)}
 					</div>

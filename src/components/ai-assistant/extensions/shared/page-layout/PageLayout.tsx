@@ -23,7 +23,9 @@ export const PageLayout = ({
 		<div className={classes.root}>
 			<div className={classes.header}>
 				<div className={classes.titleGroup}>
-					<div className={classes.title}>{title}</div>
+					<div className={classes.title} title={title}>
+						{title}
+					</div>
 				</div>
 				<div className={classes.actions}>
 					{headerActions}

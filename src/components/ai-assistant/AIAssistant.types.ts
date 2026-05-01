@@ -85,6 +85,12 @@ export interface IChatMessageData {
 	payload?: string;
 	/** Template identifier for DB-based rendering. */
 	templateId?: string;
+	/**
+	 * Names of tools the agent invoked while producing this message, in call
+	 * order. Surfaced as a small footer on the assistant bubble so the user
+	 * can see what the agent did. Empty / undefined for plain LLM responses.
+	 */
+	toolsUsed?: string[];
 }
 
 export interface IChatMessage {

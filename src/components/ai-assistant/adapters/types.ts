@@ -64,6 +64,24 @@ export type ChatEvent =
 			code?: ChatErrorCodeLike;
 			/** Optional structured payload for the consumer. */
 			data?: Record<string, unknown>;
+	  }
+	/**
+	 * Progress update emitted while the agent is working — e.g. "Calling
+	 * SearchContent…", "Thinking…", "Step 2 of 3". Hosts render this next
+	 * to the typing indicator so the user sees what the agent is doing.
+	 *
+	 * Adapters should emit a `status` with an empty `label` (or `done: true`)
+	 * to clear the indicator. The host also auto-clears on the next
+	 * `text-delta` / `text-done` / `error`.
+	 */
+	| {
+			type: "status";
+			/** Human-readable activity label. Empty string clears the indicator. */
+			label: string;
+			/** Optional stable key for deduping repeat events. */
+			key?: string;
+			/** When `true`, treated as an explicit clear regardless of `label`. */
+			done?: boolean;
 	  };
 
 /**

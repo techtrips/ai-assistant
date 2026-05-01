@@ -191,3 +191,168 @@ const resolveMessageImpl = async (
 
 	return undefined;
 };
+
+// ---------------------------------------------------------------------------
+// Friendly thread names
+// ---------------------------------------------------------------------------
+
+const STOP_WORDS = new Set([
+	"a",
+	"about",
+	"after",
+	"again",
+	"against",
+	"all",
+	"am",
+	"an",
+	"and",
+	"any",
+	"are",
+	"as",
+	"at",
+	"be",
+	"because",
+	"been",
+	"before",
+	"being",
+	"below",
+	"between",
+	"both",
+	"but",
+	"by",
+	"can",
+	"could",
+	"did",
+	"do",
+	"does",
+	"doing",
+	"down",
+	"during",
+	"each",
+	"few",
+	"for",
+	"from",
+	"further",
+	"get",
+	"had",
+	"has",
+	"have",
+	"having",
+	"he",
+	"her",
+	"here",
+	"hers",
+	"herself",
+	"him",
+	"himself",
+	"his",
+	"how",
+	"i",
+	"if",
+	"in",
+	"into",
+	"is",
+	"it",
+	"its",
+	"itself",
+	"just",
+	"me",
+	"more",
+	"most",
+	"my",
+	"myself",
+	"need",
+	"no",
+	"nor",
+	"not",
+	"now",
+	"of",
+	"off",
+	"on",
+	"once",
+	"only",
+	"or",
+	"other",
+	"our",
+	"ours",
+	"ourselves",
+	"out",
+	"over",
+	"own",
+	"please",
+	"same",
+	"she",
+	"should",
+	"so",
+	"some",
+	"such",
+	"than",
+	"that",
+	"the",
+	"their",
+	"theirs",
+	"them",
+	"themselves",
+	"then",
+	"there",
+	"these",
+	"they",
+	"this",
+	"those",
+	"through",
+	"to",
+	"too",
+	"under",
+	"until",
+	"up",
+	"very",
+	"want",
+	"was",
+	"we",
+	"were",
+	"what",
+	"when",
+	"where",
+	"which",
+	"while",
+	"who",
+	"whom",
+	"why",
+	"will",
+	"with",
+	"would",
+	"you",
+	"your",
+	"yours",
+	"yourself",
+	"yourselves",
+]);
+
+const titleCase = (word: string): string =>
+	word.length === 0
+		? word
+		: word[0].toUpperCase() + word.slice(1).toLowerCase();
+
+/**
+ * Derives a short, human-friendly name from chat content (e.g. the first
+ * user message). Strips stop-words, picks up to 4 meaningful tokens, and
+ * title-cases them. Falls back to "New Chat" when no usable text is given.
+ *
+ * Examples:
+ *   "How do I add a hook to React?"       → "Add Hook React"
+ *   "Generate weekly status report"       → "Generate Weekly Status Report"
+ *   ""                                    → "New Chat"
+ */
+export const friendlyThreadName = (text: string | undefined | null): string => {
+	if (!text) return "New Chat";
+	const tokens = text
+		.replace(/[`*_~>#]/g, " ")
+		.split(/[^\p{L}\p{N}]+/u)
+		.filter(Boolean);
+	const meaningful = tokens.filter(
+		(t) => t.length > 1 && !STOP_WORDS.has(t.toLowerCase()),
+	);
+	const picked = (meaningful.length > 0 ? meaningful : tokens).slice(0, 4);
+	if (picked.length === 0) return "New Chat";
+	return picked.map(titleCase).join(" ");
+};

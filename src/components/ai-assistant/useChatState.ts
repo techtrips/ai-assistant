@@ -40,6 +40,12 @@ export interface IUseChatStateResult {
 	setThreadId: (id: string) => void;
 	isStreaming: boolean;
 	streamingText: string;
+	/**
+	 * Current activity label emitted by the adapter (e.g. "Calling SearchContent…").
+	 * Empty string when no activity is in progress. Auto-clears as soon as the
+	 * model starts producing text, so it never coexists with `streamingText`.
+	 */
+	statusLabel: string;
 	error: string | undefined;
 	sendMessage: (text: string, model?: string) => void;
 	abort: () => void;
@@ -54,6 +60,7 @@ export const useChatState = (
 	const [threadId, setThreadId] = useState(() => nextThreadId());
 	const [isStreaming, setIsStreaming] = useState(false);
 	const [streamingText, setStreamingText] = useState("");
+	const [statusLabel, setStatusLabel] = useState("");
 	const [error, setError] = useState<string | undefined>();
 	const abortRef = useRef<AbortController | null>(null);
 
@@ -83,6 +90,7 @@ export const useChatState = (
 			});
 			setIsStreaming(true);
 			setStreamingText("");
+			setStatusLabel("");
 			setError(undefined);
 
 			const ac = new AbortController();
@@ -112,11 +120,17 @@ export const useChatState = (
 							case "text-delta":
 								fullText += event.content;
 								setStreamingText(fullText);
+								// Model is now writing — hide any "calling tool…" indicator.
+								setStatusLabel("");
 								break;
 							case "text-done":
 								fullText = event.content || fullText;
 								if (event.data) messageData = event.data;
 								setStreamingText(fullText);
+								setStatusLabel("");
+								break;
+							case "status":
+								setStatusLabel(event.done ? "" : event.label);
 								break;
 							case "error":
 								hadError = true;
@@ -168,6 +182,7 @@ export const useChatState = (
 
 				setIsStreaming(false);
 				setStreamingText("");
+				setStatusLabel("");
 				abortRef.current = null;
 			})();
 		},
@@ -179,6 +194,7 @@ export const useChatState = (
 		setMessages([]);
 		setThreadId(nextThreadId());
 		setStreamingText("");
+		setStatusLabel("");
 		setError(undefined);
 		setIsStreaming(false);
 	}, [abort]);
@@ -190,6 +206,7 @@ export const useChatState = (
 		setThreadId,
 		isStreaming,
 		streamingText,
+		statusLabel,
 		error,
 		sendMessage,
 		abort,

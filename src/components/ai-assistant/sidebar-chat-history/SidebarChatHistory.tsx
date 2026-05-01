@@ -3,6 +3,7 @@ import { mergeClasses } from "@fluentui/react-components";
 import { Search12Regular } from "@fluentui/react-icons";
 import { useSidebarChatHistoryStyles } from "./SidebarChatHistory.styles";
 import { Shimmer } from "../../common/shimmer";
+import { friendlyThreadName } from "../AIAssistant.utils";
 import {
 	useConversationHistory,
 	getTimeAgo,
@@ -76,6 +77,7 @@ export const SidebarChatHistory = ({
 									{group.items.map((c) => {
 										const isActive =
 											showSelection && c.threadId === activeThreadId;
+										const name = friendlyThreadName(c.firstMessageText);
 										return (
 											<button
 												key={c.id}
@@ -84,12 +86,10 @@ export const SidebarChatHistory = ({
 													isActive && classes.itemActive,
 												)}
 												type="button"
-												title={`${c.firstMessageText} · ${getTimeAgo(c.lastActivityAt)}`}
+												title={`${name} · ${c.firstMessageText} · ${getTimeAgo(c.lastActivityAt)}`}
 												onClick={() => handleSelect(c, onSelect)}
 											>
-												<span className={classes.itemText}>
-													{c.firstMessageText}
-												</span>
+												<span className={classes.itemText}>{name}</span>
 												<span className={classes.itemTime}>
 													{getTimeAgo(c.lastActivityAt)}
 												</span>

@@ -3,6 +3,8 @@ export type {
 	IAIAssistantService,
 	IConversationHistoryResponse as ConversationHistoryResponse,
 	IConversationMessagesResponse as ConversationMessagesResponse,
+	IThreadEvent as ThreadEvent,
+	IThreadEventsResponse as ThreadEventsResponse,
 } from "./AIAssistant.services";
 export { AIAssistantService } from "./AIAssistant.services";
 export type {
@@ -52,6 +54,7 @@ export type {
 	MapDataFn,
 } from "./adapters/types";
 export { ConversationHistory } from "./extensions/conversation-history";
+export { RawLogs } from "./extensions/raw-logs";
 export { Settings } from "./extensions/settings";
 export { StarterPrompts } from "./extensions/starter-prompts";
 export { TemplateRenderer } from "./extensions/template-renderer";

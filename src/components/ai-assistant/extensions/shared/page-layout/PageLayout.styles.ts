@@ -26,12 +26,16 @@ export const usePageLayoutStyles = makeStyles({
 	titleGroup: {
 		minWidth: 0,
 		flex: 1,
+		overflow: "hidden",
 	},
 	title: {
 		fontSize: tokens.fontSizeBase300,
 		fontWeight: tokens.fontWeightSemibold,
 		lineHeight: tokens.lineHeightBase300,
 		color: tokens.colorNeutralForeground1,
+		overflow: "hidden",
+		textOverflow: "ellipsis",
+		whiteSpace: "nowrap",
 	},
 	actions: {
 		display: "flex",

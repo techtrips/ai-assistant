@@ -12,6 +12,7 @@ import { Shimmer } from "../../../common/shimmer";
 import { useConversationHistoryStyles } from "./ConversationHistory.styles";
 import { useConversationHistory } from "./useConversationHistory";
 import { getTimeAgo, groupByTime } from "./ConversationHistory.utils";
+import { friendlyThreadName } from "../../AIAssistant.utils";
 
 const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 	const classes = useConversationHistoryStyles();
@@ -106,6 +107,7 @@ const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 						<div className={classes.groupLabel}>{group.label}</div>
 						{group.items.map((c) => {
 							const isActive = c.threadId === activeThreadId;
+							const name = friendlyThreadName(c.firstMessageText);
 							return (
 								<button
 									key={c.id}
@@ -115,11 +117,10 @@ const ConversationHistoryPanel = ({ onClose }: IExtensionProps) => {
 									)}
 									type="button"
 									onClick={() => handleSelect(c, onClose)}
+									title={c.firstMessageText}
 								>
 									<div className={classes.cardRow}>
-										<span className={classes.cardTitle}>
-											{c.firstMessageText}
-										</span>
+										<span className={classes.cardTitle}>{name}</span>
 										<span className={classes.cardTime}>
 											{getTimeAgo(c.lastActivityAt)}
 										</span>
