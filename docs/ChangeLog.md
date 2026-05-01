@@ -8,6 +8,8 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.5.0](#150--2026-05-01) | 2026-05-01 | **Breaking:** default renderer chain reordered to `template → markdown → adaptiveCard → dynamicUi` so the assistant's prose answer wins over raw tool payloads |
+| [1.4.2](#142--2026-05-01) | 2026-05-01 | Adaptive Card renderer unwraps MCP tool-result envelopes (also covers reloaded conversation history) |
 | [1.4.1](#141--2026-05-01) | 2026-05-01 | AG-UI adapter unwraps MCP content blocks before exposing them as `data.payload` |
 | [1.4.0](#140--2026-05-01) | 2026-05-01 | Hover-revealed copy button on every chat message |
 | [1.3.1](#131--2026-05-01) | 2026-05-01 | Scoped `AIAssistantService` now also constrains starter prompts and agent-name list to the configured agent |
@@ -27,6 +29,28 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+
+## [1.5.0] — 2026-05-01
+
+### Changed (mildly breaking)
+
+- **`defaultMessageRenderers` now runs `template → markdown → adaptiveCard → dynamicUi`** (markdown moved from last to second).
+
+  The previous order (`template → adaptiveCard → dynamicUi → markdown`) meant Adaptive Card would always beat the assistant's prose whenever a tool was called and a payload was attached — producing 2-column “Title | Content” tables of raw tool data instead of the LLM's synthesized answer.
+
+  Templates still run first because they are the most explicit consumer-controlled signal (`data.templateId` matched against a registered template). The markdown renderer self-skips when `message.content` is empty, so structured-only tool responses still flow through to AC / dynamic-ui as before. Net effect: prose answers render as prose; tool-only payloads still render as cards; explicit templates still win.
+
+  **Migration:** consumers always have full control of order by passing their own `messageRenderers={[…]}` prop. Consumers that depend on AC always beating markdown can pass `[templateRenderer, adaptiveCardRenderer, dynamicUiRenderer, markdownRenderer]` explicitly. Consumers using `defaultMessageRenderers` get the new order automatically.
+
+---
+
+## [1.4.2] — 2026-05-01
+
+### Fixed
+
+- **Adaptive Card renderer now unwraps MCP tool-result envelopes itself.** 1.4.1 fixed the live-message path inside `agUiAdapter`, but messages reloaded from a conversation-history API still carried the raw `{ content: [{ type: "text", text: "…" }], structuredContent: {…} }` shape in `data.payload`. AC turned that into a useless 2-column “Type | Text” table whose row contained the inner JSON. `renderAdaptiveCard` now: (1) prefers `structuredContent` when present, (2) else JSON-parses each text block, (3) else returns `undefined` so the markdown renderer takes over and the assistant's prose answer is shown.
 
 ---
 

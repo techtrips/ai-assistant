@@ -225,10 +225,30 @@ const safeAnchors = (html: string): string =>
 // Default pipeline
 // ---------------------------------------------------------------------------
 
-/** The default renderer chain: template → adaptive card → dynamic UI → markdown. */
+/**
+ * The default renderer chain.
+ *
+ * Order: template → markdown → adaptive card → dynamic UI.
+ *
+ * Templates run first because they are the most explicit / consumer-controlled
+ * signal (consumer registered a template + agent set `data.templateId`).
+ * Markdown runs next so that whenever the assistant has produced a real prose
+ * answer (`message.content` non-empty), we render that — NOT the raw tool
+ * payload. The markdown renderer self-skips when `content` is empty, falling
+ * through to AC / dynamic-ui for tool-only responses where the structured
+ * `data.payload` IS the answer.
+ *
+ * Consumers always have full control of ordering by passing their own
+ * `messageRenderers` array to `<AIAssistant />`.
+ *
+ * Note: pre-1.5 the order was template → AC → dynamicUi → markdown, which
+ * meant AC always beat the assistant's prose whenever a tool was called and
+ * a payload was attached, producing useless 2-column tables of MCP / tool
+ * envelopes instead of the LLM's synthesized answer.
+ */
 export const defaultMessageRenderers: IMessageRenderer[] = [
 	templateRenderer,
+	markdownRenderer,
 	adaptiveCardRenderer,
 	dynamicUiRenderer,
-	markdownRenderer,
 ];

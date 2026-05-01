@@ -850,6 +850,61 @@ const isAdaptiveCard = (data: unknown): boolean =>
  *
  * Returns HTML string or undefined on failure.
  */
+// ---------------------------------------------------------------------------
+// MCP content-block unwrap
+//
+// MCP tool results are wrapped as `{ content: [{ type: "text", text: "..." }],
+// structuredContent: { ... } }`. Treating the wrapper as the AC payload
+// produces a useless 2-column "Type | Text" table whose only row contains
+// the inner JSON as a string. We unwrap to:
+//   1. structuredContent if present (already structured),
+//   2. else parse the inner text(s) as JSON,
+//   3. else give up so AC returns undefined and the markdown renderer wins.
+// ---------------------------------------------------------------------------
+
+const isMcpTextBlock = (v: unknown): v is { type: string; text?: string } =>
+	typeof v === "object" &&
+	v !== null &&
+	(v as { type?: unknown }).type === "text" &&
+	typeof (v as { text?: unknown }).text === "string";
+
+const unwrapMcpPayload = (data: unknown): unknown => {
+	if (data === null || typeof data !== "object" || Array.isArray(data)) {
+		return data;
+	}
+	const obj = data as Obj;
+	const hasContentBlocks =
+		Array.isArray(obj.content) &&
+		(obj.content as unknown[]).every(isMcpTextBlock);
+	if (!hasContentBlocks && obj.structuredContent === undefined) {
+		return data;
+	}
+	// Prefer pre-structured content when the MCP server provides it.
+	if (obj.structuredContent !== undefined && obj.structuredContent !== null) {
+		return obj.structuredContent;
+	}
+	// Otherwise pull the inner text out and try to parse each block as JSON.
+	const blocks = obj.content as Array<{ text: string }>;
+	if (blocks.length === 0) return undefined;
+	if (blocks.length === 1) {
+		try {
+			return JSON.parse(blocks[0].text);
+		} catch {
+			// Not JSON — caller should fall through to markdown.
+			return undefined;
+		}
+	}
+	const parsedAll: unknown[] = [];
+	for (const b of blocks) {
+		try {
+			parsedAll.push(JSON.parse(b.text));
+		} catch {
+			return undefined;
+		}
+	}
+	return parsedAll;
+};
+
 export const renderAdaptiveCard = async (
 	payload: string,
 	theme?: "light" | "dark",
@@ -863,6 +918,11 @@ export const renderAdaptiveCard = async (
 	} catch {
 		return undefined;
 	}
+	if (data === null || data === undefined) return undefined;
+
+	// Defensive unwrap for raw MCP tool-result envelopes that may have been
+	// stored as-is in conversation history.
+	data = unwrapMcpPayload(data);
 	if (data === null || data === undefined) return undefined;
 
 	let cardJson: Record<string, unknown>;
