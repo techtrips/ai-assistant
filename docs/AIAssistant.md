@@ -166,8 +166,11 @@ const adapter = restAdapter({
 |--------|------|----------|-------------|
 | `url` | `string` | Yes | REST endpoint URL. |
 | `getToken` | `() => Promise<string>` | No | Async function returning an access token. |
+| `mapBody` | `(request) => unknown` | No | Build the JSON body to POST. Default: `{ threadId, messageId, message, model }`. |
 | `extractText` | `(json: unknown) => string` | No | Custom extractor for the response text. Defaults to `json.text ?? json.message ?? JSON.stringify(json)`. |
 | `mapData` | `(json: unknown) => IChatMessageData \| undefined` | No | Custom transform from raw JSON to `IChatMessageData`. Default: looks for `data`/`payload` and `templateId`/`template` fields. |
+| `mapError` | `(ctx) => { message, code?, data? }` | No | Map a non-OK HTTP response to a structured error event. Default: emits a generic error with `ChatErrorCode.AuthRequired` on 401/403. |
+| `headers` | `Record<string, string>` | No | Extra headers merged into every request. |
 
 ### Custom adapter
 
@@ -206,6 +209,9 @@ The rendering pipeline transforms `IChatMessageData` (attached to assistant mess
 | `templateRenderer` | `template` | Fetches a template by `templateId` from the DB via `IAIAssistantService` | Yes |
 | `adaptiveCardRenderer` | `adaptiveCard` | Renders `payload` using the Adaptive Card SDK — deterministic, zero LLM cost | Yes |
 | `dynamicUiRenderer` | `dynamicUi` | Sends `payload` to the LLM to generate HTML UI | No |
+| `markdownRenderer` | `markdown` | Last-resort fallback that converts the assistant's `content` (plain text or GitHub-flavoured markdown) into safe HTML. Also passes through `data.payload` strings that already look like raw HTML. | Yes |
+
+> Heavy dependencies (`marked`, `dompurify`, `adaptivecards`) are loaded **on first use** via dynamic `import()`. Apps that never receive markdown / HTML / Adaptive-Card payloads pay zero bundle cost for these renderers.
 
 ### Pipeline configuration
 
@@ -228,11 +234,14 @@ The rendering pipeline transforms `IChatMessageData` (attached to assistant mess
 
 ### Custom renderers
 
+A renderer receives an `IRenderContext` and returns either an HTML string, a React node, or `undefined` to fall through to the next renderer.
+
 ```ts
 const myRenderer: IMessageRenderer = {
   type: MessageRendererType.Custom,
   async render(ctx) {
-    // ctx.message, ctx.service, ctx.theme, ctx.settings, ctx.model
+    // ctx.message, ctx.service, ctx.theme, ctx.settings, ctx.model, ctx.signal
+    if (ctx.signal?.aborted) return undefined;
     if (ctx.message.data?.templateId === 'weather') {
       return <WeatherCard data={ctx.message.data.payload} />;
     }
@@ -240,6 +249,8 @@ const myRenderer: IMessageRenderer = {
   },
 };
 ```
+
+`ctx.signal` is an `AbortSignal` that fires when the host bubble unmounts or the message is otherwise cancelled. Renderers performing async work (template fetches, LLM calls, image loads) should forward it and bail out fast.
 
 ### Adaptive Card adapter
 

@@ -1,4 +1,13 @@
-import * as AdaptiveCards from "adaptivecards";
+// Adaptive Card SDK is heavy (~150kb gz) and not needed unless this
+// renderer is actually invoked. Loaded on first use.
+type AdaptiveCardsModule = typeof import("adaptivecards");
+let adaptiveCardsModulePromise: Promise<AdaptiveCardsModule> | undefined;
+const loadAdaptiveCards = (): Promise<AdaptiveCardsModule> => {
+	if (!adaptiveCardsModulePromise) {
+		adaptiveCardsModulePromise = import("adaptivecards");
+	}
+	return adaptiveCardsModulePromise;
+};
 
 // ---------------------------------------------------------------------------
 // Adaptive Card renderer — smart layout selection based on data shape
@@ -833,16 +842,19 @@ const isAdaptiveCard = (data: unknown): boolean =>
  * Action.OpenUrl buttons are patched into native <a> links so they
  * work inside shadow DOM without JS event handlers.
  *
+ * The Adaptive Cards SDK is loaded on first call so consumers that never
+ * trigger this path don't pay the bundle cost.
+ *
  * Pass a custom `IAdaptiveCardAdapter` to override host config,
  * layout selection, or post-processing. Falls back to `defaultAdaptiveCardAdapter`.
  *
  * Returns HTML string or undefined on failure.
  */
-export const renderAdaptiveCard = (
+export const renderAdaptiveCard = async (
 	payload: string,
 	theme?: "light" | "dark",
 	adapter?: IAdaptiveCardAdapter,
-): string | undefined => {
+): Promise<string | undefined> => {
 	const impl = adapter ?? defaultAdaptiveCardAdapter;
 
 	let data: unknown;
@@ -867,6 +879,7 @@ export const renderAdaptiveCard = (
 	if (!body || body.length === 0) return undefined;
 
 	try {
+		const AdaptiveCards = await loadAdaptiveCards();
 		const card = new AdaptiveCards.AdaptiveCard();
 		card.hostConfig = new AdaptiveCards.HostConfig(
 			impl.buildHostConfig(theme ?? "light"),

@@ -3,6 +3,14 @@ import type { IAIAssistantSettings, IChatMessage } from "./AIAssistant.types";
 import type { IAdaptiveCardAdapter } from "./AdaptiveCardRenderer";
 import { renderAdaptiveCard } from "./AdaptiveCardRenderer";
 
+// Lazy-load `marked` only when the markdown renderer actually fires.
+type MarkedModule = typeof import("marked");
+let markedPromise: Promise<MarkedModule> | undefined;
+const loadMarked = (): Promise<MarkedModule> => {
+	if (!markedPromise) markedPromise = import("marked");
+	return markedPromise;
+};
+
 // ---------------------------------------------------------------------------
 // Message renderer — pluggable pipeline for rendering assistant messages
 // ---------------------------------------------------------------------------
@@ -15,6 +23,8 @@ export enum MessageRendererType {
 	AdaptiveCard = "adaptiveCard",
 	/** Render via LLM-generated HTML (Dynamic UI). */
 	DynamicUi = "dynamicUi",
+	/** Render plain text or markdown content as safe HTML (links open in new tab). */
+	Markdown = "markdown",
 	/** Consumer-provided custom renderer (e.g. React component rendering). */
 	Custom = "custom",
 }
@@ -29,6 +39,12 @@ export interface IRenderContext {
 	theme: "light" | "dark";
 	settings: IAIAssistantSettings;
 	model?: string;
+	/**
+	 * Optional abort signal. Renderers performing async work (template
+	 * fetches, dynamic UI calls) should forward this and bail out fast
+	 * when the host component unmounts or the request is cancelled.
+	 */
+	signal?: AbortSignal;
 }
 
 /**
@@ -145,7 +161,7 @@ export const createAdaptiveCardRenderer = (
 	async render(ctx) {
 		const payload = ctx.message.data?.payload;
 		if (!payload) return undefined;
-		return renderAdaptiveCard(payload, ctx.theme, adapter) ?? undefined;
+		return (await renderAdaptiveCard(payload, ctx.theme, adapter)) ?? undefined;
 	},
 });
 
@@ -179,13 +195,54 @@ export const dynamicUiRenderer: IMessageRenderer = {
 	},
 };
 
+/**
+ * Markdown renderer — last-resort fallback that turns the assistant's
+ * `message.content` (plain text or GitHub-flavoured markdown) into safe HTML.
+ * Anchor tags are rewritten to open in a new tab with `noopener noreferrer`.
+ *
+ * If `data.payload` is a string that already looks like raw HTML, it is used
+ * verbatim instead. This lets agents send pre-rendered HTML when they want
+ * full control over the layout.
+ */
+export const markdownRenderer: IMessageRenderer = {
+	type: MessageRendererType.Markdown,
+	async render(ctx) {
+		const payload = ctx.message.data?.payload;
+		if (typeof payload === "string" && /<\/?[a-z][\s\S]*>/i.test(payload)) {
+			return safeAnchors(payload);
+		}
+		const content = ctx.message.content;
+		if (typeof content !== "string" || content.length === 0) return undefined;
+		try {
+			const { marked } = await loadMarked();
+			const html = marked.parse(content, {
+				async: false,
+				breaks: true,
+				gfm: true,
+			}) as string;
+			return safeAnchors(html);
+		} catch (err) {
+			console.error("[ai-assistant] Markdown parse failed:", err);
+			return undefined;
+		}
+	},
+};
+
+/** Anchor-tag rewriter: forces `target="_blank" rel="noopener noreferrer"`. */
+const safeAnchors = (html: string): string =>
+	html.replace(
+		/<a\s+(?![^>]*\btarget=)/gi,
+		'<a target="_blank" rel="noopener noreferrer" ',
+	);
+
 // ---------------------------------------------------------------------------
 // Default pipeline
 // ---------------------------------------------------------------------------
 
-/** The default renderer chain: template → adaptive card → dynamic UI. */
+/** The default renderer chain: template → adaptive card → dynamic UI → markdown. */
 export const defaultMessageRenderers: IMessageRenderer[] = [
 	templateRenderer,
 	adaptiveCardRenderer,
 	dynamicUiRenderer,
+	markdownRenderer,
 ];

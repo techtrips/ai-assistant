@@ -71,6 +71,7 @@ export const DEFAULT_ENABLED_RENDERERS: Record<string, boolean> = {
 	[MessageRendererType.Template]: true,
 	[MessageRendererType.AdaptiveCard]: true,
 	[MessageRendererType.DynamicUi]: false,
+	[MessageRendererType.Markdown]: true,
 };
 
 export const DEFAULT_SETTINGS: IAIAssistantSettings = {

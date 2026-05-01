@@ -1,6 +1,6 @@
 # @techtrips/ai-assistant
 
-[![version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/docs/ChangeLog.md)
+[![version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/docs/ChangeLog.md)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/LICENSE)
 
 A React component library for building agent-based AI assistants. Provides a production-ready, adapter-driven conversational UI with streaming support, an extension system, and template rendering — all built on [Fluent UI](https://react.fluentui.dev/) and the [AG-UI protocol](https://github.com/ag-ui-protocol).
@@ -33,7 +33,10 @@ A React component library for building agent-based AI assistants. Provides a pro
 - Mobile responsive layout — fullscreen overlay on small screens, side panel on desktop
 - Plug-in extension system for conversation history, starter prompts, templates, and custom views
 - Starter prompt chips for guided onboarding
-- **Pluggable message rendering pipeline** — Templates (DB lookup), Adaptive Cards (deterministic, zero LLM cost), and LLM-generated dynamic UI, plus your own custom renderers
+- **Pluggable message rendering pipeline** — Templates (DB lookup), Adaptive Cards (deterministic, zero LLM cost), LLM-generated dynamic UI, and GitHub-flavoured Markdown, plus your own custom renderers
+- **Lazy-loaded heavy deps** — `marked`, `dompurify`, and `adaptivecards` are only fetched on first use, so apps that don't need them pay zero bundle cost
+- **Abortable rendering** — every render context carries an `AbortSignal` that fires on unmount, so async renderers can cancel in-flight fetches
+- **Sanitized by default** — HTML responses pass through DOMPurify before being injected into a shadow root
 - JSON-driven template rendering with built-in control types and data binding
 - Visual template designer with drag-and-drop, live preview, and JSON editing
 - Built on Microsoft Fluent UI for a consistent, accessible design system
@@ -130,13 +133,14 @@ Assistant messages can carry structured `data` (`{ payload?, templateId? }`) alo
 
 ### What `defaultMessageRenderers` contains
 
-`defaultMessageRenderers` is an ordered array of three built-in renderers, exported as-is so consumers can spread, slice, or replace it:
+`defaultMessageRenderers` is an ordered array of four built-in renderers, exported as-is so consumers can spread, slice, or replace it:
 
 ```ts
 export const defaultMessageRenderers: IMessageRenderer[] = [
   templateRenderer,      // type: "template"      — fetches template by templateId from IAIAssistantService
   adaptiveCardRenderer,  // type: "adaptiveCard"  — renders payload via the Adaptive Card SDK
   dynamicUiRenderer,     // type: "dynamicUi"     — asks the LLM to generate scoped HTML for payload
+  markdownRenderer,      // type: "markdown"      — renders plain content as GFM HTML, sanitized via DOMPurify
 ];
 ```
 
@@ -145,8 +149,11 @@ export const defaultMessageRenderers: IMessageRenderer[] = [
 | `templateRenderer` | `template` | `message.data.templateId` is set and a template with that ID exists in the DB | Yes |
 | `adaptiveCardRenderer` | `adaptiveCard` | `message.data.payload` is set (and `templateRenderer` did not handle it) | Yes |
 | `dynamicUiRenderer` | `dynamicUi` | `message.data.payload` is set and earlier renderers skipped — generates HTML via `IAIAssistantService.generateDynamicUi` | No |
+| `markdownRenderer` | `markdown` | `message.content` is a non-empty string, or `data.payload` already looks like raw HTML — final fallback | Yes |
 
-Each built-in is also exported individually (`templateRenderer`, `adaptiveCardRenderer`, `dynamicUiRenderer`, `createAdaptiveCardRenderer`) so you can mix and match. Whether a built-in actually runs is gated by `IAIAssistantSettings.enabledRenderers` — toggleable at runtime from the **Settings** extension.
+Each built-in is also exported individually (`templateRenderer`, `adaptiveCardRenderer`, `dynamicUiRenderer`, `markdownRenderer`, `createAdaptiveCardRenderer`) so you can mix and match. Whether a built-in actually runs is gated by `IAIAssistantSettings.enabledRenderers` — toggleable at runtime from the **Settings** extension.
+
+> **Bundle cost.** `marked`, `dompurify`, and `adaptivecards` are loaded via dynamic `import()` the first time the matching renderer fires. Apps that never see markdown / HTML / Adaptive-Card payloads pay nothing for these dependencies. Combined with the package's `"sideEffects"` declaration, unused renderers are tree-shaken from the consumer build.
 
 ### Customising the pipeline
 
@@ -186,7 +193,8 @@ import type { IMessageRenderer, IRenderContext } from "@techtrips/ai-assistant";
 const weatherRenderer: IMessageRenderer = {
   type: MessageRendererType.Custom,
   async render(ctx: IRenderContext) {
-    // ctx: { message, service?, theme, settings, model? }
+    // ctx: { message, service?, theme, settings, model?, signal? }
+    if (ctx.signal?.aborted) return undefined;
     if (ctx.message.data?.templateId === "weather") {
       return <WeatherCard payload={ctx.message.data.payload} />;
     }
@@ -291,6 +299,9 @@ const service = new AIAssistantService({ baseUrl: apiUrl, getToken });
 | `@ag-ui/client` | AG-UI protocol client for agent communication |
 | `@ag-ui/core` | AG-UI protocol core types and utilities |
 | `@fluentui/react-components` | Microsoft Fluent UI React component library |
+| `adaptivecards` | Adaptive Cards SDK \u2014 lazy-loaded on first use |
+| `dompurify` | HTML sanitizer \u2014 lazy-loaded on first HTML render |
+| `marked` | GitHub-flavoured Markdown parser \u2014 lazy-loaded on first markdown render |
 | `react` | React library |
 | `react-dom` | React DOM renderer |
 | `react-router` | Declarative routing for React |

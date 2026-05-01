@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.1.0](#110--2026-05-01) | 2026-05-01 | Scalability pass: lazy-loaded heavy deps, abortable render pipeline, sanitize memoization, shared adapter HTTP helpers, `sideEffects` for tree-shaking |
 | [1.0.1](#101--2026-05-01) | 2026-05-01 | Structured chat error events with `onError` prop and `ChatErrorCode` codes, themed sidebar history scrollbar |
 | [1.0.0](#100--2026-04-21) | 2026-04-21 | Pluggable message rendering pipeline, Adaptive Card renderer, unified settings, `chatAdapter` prop rename |
 | [0.1.7](#017--2026-04-20) | 2026-04-20 | `renderMessage` gated on `data` presence instead of `payload` |
@@ -21,7 +22,26 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 
 ---
+1.0] — 2026-05-01
 
+### Added
+
+- `signal?: AbortSignal` on `IRenderContext`. The render pipeline now bails out between renderers when the host component unmounts or the request is cancelled. `useResolveMessage` creates an `AbortController` per render and aborts it on cleanup.
+- Shared adapter HTTP helpers in `adapters/http.ts` (`buildAuthHeaders`, `httpStatusToErrorCode`). Both `restAdapter` and `agUiAdapter` use them, eliminating duplicated bearer-token / 401-403 mapping logic.
+- `"sideEffects": ["**/*.css"]` declaration in `package.json` so consumer bundlers can tree-shake unused renderers and adapters.
+
+### Changed
+
+- **Lazy-loaded heavy dependencies.** `marked`, `dompurify` and `adaptivecards` (~250 kB combined) are no longer imported eagerly. They load via dynamic `import()` the first time the matching renderer fires, so apps that never receive markdown / HTML / Adaptive-Card payloads pay zero bundle cost.
+- `IsolatedHtmlRenderer` now memoizes the sanitized HTML keyed by the raw input. Theme toggles, resizes and unrelated re-renders no longer re-run DOMPurify or rewrite the shadow root.
+
+### Breaking
+
+- `renderAdaptiveCard(payload, theme?, adapter?)` is now `async` and returns `Promise<string | undefined>` (was `string | undefined`). Required to support lazy-loading the Adaptive Cards SDK. Consumers calling it directly must `await` the result; the built-in `adaptiveCardRenderer` is unaffected.
+
+---
+
+## [1.
 ## [1.0.1] — 2026-05-01
 
 ### Added

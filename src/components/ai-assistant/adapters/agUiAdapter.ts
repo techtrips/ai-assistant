@@ -1,6 +1,7 @@
 import { HttpAgent } from "@ag-ui/client";
 import type { AgentSubscriber } from "@ag-ui/client";
 import type { RunAgentInput, Message } from "@ag-ui/core";
+import { buildAuthHeaders } from "./http";
 import type {
 	IChatAdapter,
 	ChatEvent,
@@ -86,7 +87,9 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 			const token = await options.getToken().catch(() => "");
 
 			agent.threadId = request.threadId;
-			agent.headers = token ? { Authorization: `Bearer ${token}` } : {};
+			agent.headers = await buildAuthHeaders(
+				token ? async () => token : undefined,
+			);
 			agent.model = request.model;
 
 			const userMessage: Message = {

@@ -22,10 +22,15 @@ export const checkPermission = (
 
 /**
  * Returns true when the message should go through the rendering pipeline.
- * Checks for pre-computed payload or templateId — both set at source.
+ * Resolves on:
+ *   - `data.payload` or `data.templateId` (structured data → template / card / dynamic UI)
+ *   - any non-empty assistant `content` (plain text / markdown → markdown renderer)
  */
 export const needsResolution = (message: IChatMessage): boolean => {
 	if (message.role !== "assistant") return false;
+	if (typeof message.content === "string" && message.content.length > 0) {
+		return true;
+	}
 	const data = message.data;
 	if (!data) return false;
 	return !!(data.payload || data.templateId);
@@ -86,6 +91,7 @@ export const resolveMessage = (
 	theme?: "light" | "dark",
 	settings?: IAIAssistantSettings,
 	renderers?: IMessageRenderer[],
+	signal?: AbortSignal,
 ): Promise<RenderResult> => {
 	if (message.role !== "assistant") return Promise.resolve(undefined);
 
@@ -99,6 +105,7 @@ export const resolveMessage = (
 		theme,
 		settings,
 		renderers,
+		signal,
 	);
 	const entry = {
 		promise,
@@ -155,6 +162,7 @@ const resolveMessageImpl = async (
 	theme?: "light" | "dark",
 	settings?: IAIAssistantSettings,
 	renderers?: IMessageRenderer[],
+	signal?: AbortSignal,
 ): Promise<RenderResult> => {
 	const effectiveSettings = settings ?? DEFAULT_SETTINGS;
 	const chain = buildRendererChain(
@@ -167,9 +175,11 @@ const resolveMessageImpl = async (
 		theme: theme ?? "light",
 		settings: effectiveSettings,
 		model,
+		signal,
 	};
 
 	for (const renderer of chain) {
+		if (signal?.aborted) return undefined;
 		try {
 			const result = await renderer.render(ctx);
 			if (result !== undefined && result !== null) return result;

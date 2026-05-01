@@ -2,7 +2,10 @@
 	"name": "@techtrips/ai-assistant",
 	"module": "lib/index.js",
 	"types": "lib/index.d.ts",
-	"version": "1.0.1",
+	"version": "1.1.0",
+	"sideEffects": [
+		"**/*.css"
+	],
 	"scripts": {
 		"clean": "rimraf lib",
 		"build": "npm run clean && tsc -p tsconfig.prod.json",
@@ -19,6 +22,8 @@
 		"@ag-ui/core": "^0.0.48",
 		"@fluentui/react-components": "^9.73.6",
 		"adaptivecards": "^3.0.6",
+		"dompurify": "^3.4.2",
+		"marked": "^17.0.6",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
 		"react-router": "^7.13.2"

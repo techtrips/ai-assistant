@@ -1,9 +1,23 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+// DOMPurify is ~50kb gz; loaded on first sanitize.
+type DomPurifyModule = typeof import("dompurify");
+let dompurifyPromise: Promise<DomPurifyModule> | undefined;
+const loadDomPurify = (): Promise<DomPurifyModule> => {
+	if (!dompurifyPromise) dompurifyPromise = import("dompurify");
+	return dompurifyPromise;
+};
 
 type IsolatedHtmlRendererProps = {
 	html: string;
 	className?: string;
 	theme?: "light" | "dark";
+	/**
+	 * If true, the HTML is rendered verbatim without sanitization. Use only
+	 * for fully trusted content (e.g. server-rendered templates). Defaults
+	 * to false — DOMPurify strips scripts, event handlers and other vectors.
+	 */
+	trusted?: boolean;
 };
 
 const buildThemeStylesheet = (theme: "light" | "dark"): string => {
@@ -44,19 +58,66 @@ th { font-weight: 600; color: ${vars.muted}; font-size: 12px; text-transform: up
 </style>`;
 };
 
+// Tiny per-renderer sanitization cache keyed by raw HTML. Memoization at
+// the component level avoids re-sanitizing the same chat reply on every
+// theme toggle / resize re-render.
+const useSanitized = (html: string, trusted: boolean): string | undefined => {
+	const cacheRef = useRef<{ key: string; out: string } | null>(null);
+	const [out, setOut] = useState<string | undefined>(() =>
+		trusted
+			? html
+			: cacheRef.current?.key === html
+				? cacheRef.current.out
+				: undefined,
+	);
+
+	useEffect(() => {
+		if (trusted) {
+			setOut(html);
+			return;
+		}
+		if (cacheRef.current?.key === html) {
+			setOut(cacheRef.current.out);
+			return;
+		}
+		let cancelled = false;
+		(async () => {
+			const mod = await loadDomPurify();
+			const purify = (mod.default ?? (mod as unknown as DomPurifyModule)) as {
+				sanitize: (s: string, opts?: unknown) => string;
+			};
+			const safe = purify.sanitize(html, {
+				USE_PROFILES: { html: true },
+				ADD_ATTR: ["target", "rel"],
+			});
+			if (cancelled) return;
+			cacheRef.current = { key: html, out: safe };
+			setOut(safe);
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [html, trusted]);
+
+	return out;
+};
+
 export const IsolatedHtmlRenderer = ({
 	html,
 	className,
 	theme = "light",
+	trusted = false,
 }: IsolatedHtmlRendererProps) => {
 	const hostRef = useRef<HTMLDivElement | null>(null);
+	const safeHtml = useSanitized(html, trusted);
+	const stylesheet = useMemo(() => buildThemeStylesheet(theme), [theme]);
 
 	useEffect(() => {
 		const host = hostRef.current;
-		if (!host) return;
+		if (!host || safeHtml === undefined) return;
 		const shadowRoot = host.shadowRoot ?? host.attachShadow({ mode: "open" });
-		shadowRoot.innerHTML = buildThemeStylesheet(theme) + html;
-	}, [html, theme]);
+		shadowRoot.innerHTML = stylesheet + safeHtml;
+	}, [safeHtml, stylesheet]);
 
 	return <div ref={hostRef} className={className} />;
 };

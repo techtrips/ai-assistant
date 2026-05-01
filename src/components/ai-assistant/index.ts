@@ -34,6 +34,7 @@ export {
 	adaptiveCardRenderer,
 	createAdaptiveCardRenderer,
 	dynamicUiRenderer,
+	markdownRenderer,
 	defaultMessageRenderers,
 } from "./messageRenderers";
 export type { IAIAssistantContextValue as AIAssistantContextValue } from "./AIAssistantContext";
