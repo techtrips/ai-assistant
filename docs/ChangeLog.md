@@ -1,6 +1,6 @@
 # Release Notes
 
-All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and the project uses [Semantic Versioning](https://semver.org/).
+All notable changes to `@techtrips/ai-assistant` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.1/) and the project uses [Semantic Versioning](https://semver.org/).
 
 ---
 
@@ -8,7 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| [1.0.1](#101--2026-05-01) | 2026-05-01 | - |
+| [1.0.1](#101--2026-05-01) | 2026-05-01 | Structured chat error events with `onError` prop and `ChatErrorCode` codes, themed sidebar history scrollbar |
 | [1.0.0](#100--2026-04-21) | 2026-04-21 | Pluggable message rendering pipeline, Adaptive Card renderer, unified settings, `chatAdapter` prop rename |
 | [0.1.7](#017--2026-04-20) | 2026-04-20 | `renderMessage` gated on `data` presence instead of `payload` |
 | [0.1.6](#016--2026-04-20) | 2026-04-20 | Generic adapter data mapping, typed IChatMessageData, resolution pipeline fixes |
@@ -26,15 +26,13 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 ### Added
 
-- _Update this section before publishing_
-
-### Changed
-
-- _Update this section before publishing_
+- `onError` prop on `<AIAssistant>` for receiving structured chat error events. Plumbed through `useAIAssistant` and `useChatState`.
+- `ChatErrorCode` const-object and `ChatErrorCodeLike` type exported from the package root. Codes include `AuthRequired`, allowing consumers to react to 401/403 responses (e.g. re-prompt for tokens).
+- Error events now carry an optional `code: ChatErrorCodeLike` and `data?: Record<string, unknown>` payload so consumers can route handling based on the underlying cause.
 
 ### Fixed
 
-- _Update this section before publishing_
+- Sidebar chat history scrollbar now uses themed colors (transparent track, themed thumb with hover) instead of the browser default, which appeared jarring against the dark theme.
 
 ---
 
