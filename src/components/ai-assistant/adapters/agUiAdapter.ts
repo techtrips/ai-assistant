@@ -20,6 +20,17 @@ interface AgUiAdapterOptions {
 	 * Override this for agents whose conventions differ.
 	 */
 	mapData?: MapDataFn;
+	/**
+	 * When `true`, prior conversation turns from `request.history` are sent
+	 * along with the user message in each AG-UI run. Use this for stateless
+	 * AG-UI servers that don't persist history themselves.
+	 *
+	 * Default `false`: most AG-UI servers (including TechTrips) attach a
+	 * `ChatHistoryProvider` keyed by `threadId` and rehydrate prior turns
+	 * server-side. Forwarding history in that setup would duplicate every
+	 * turn.
+	 */
+	forwardHistory?: boolean;
 }
 
 /**
@@ -136,15 +147,15 @@ export const defaultMapData: MapDataFn = (toolCalls) => {
  * ```
  */
 export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
-	let agent: ExtendedHttpAgent | undefined;
-
 	return {
 		async *sendMessage(
 			request: ISendMessageRequest,
 		): AsyncGenerator<ChatEvent> {
-			if (!agent) {
-				agent = new ExtendedHttpAgent({ url: options.url });
-			}
+			// Construct a fresh HttpAgent per call. The AG-UI client mutates
+			// agent.threadId / headers / messages on every run, so reusing
+			// one instance across concurrent sendMessage invocations would
+			// race on those fields.
+			const agent = new ExtendedHttpAgent({ url: options.url });
 
 			const token = await options.getToken().catch(() => "");
 
@@ -154,12 +165,23 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 			);
 			agent.model = request.model;
 
-			const userMessage: Message = {
+			const messages: Message[] = [];
+			if (options.forwardHistory && request.history) {
+				let i = 0;
+				for (const turn of request.history) {
+					messages.push({
+						id: `${request.messageId}-h${i++}`,
+						role: turn.role,
+						content: turn.content,
+					});
+				}
+			}
+			messages.push({
 				id: request.messageId,
 				role: "user",
 				content: request.message,
-			};
-			agent.setMessages([userMessage]);
+			});
+			agent.setMessages(messages);
 
 			// Use a queue to bridge the callback-based subscriber to async iteration
 			type QueueItem = ChatEvent | null; // null = done
@@ -178,6 +200,10 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 
 			let textEndReceived = false;
 			let streamedText = "";
+			// AG-UI emits both `onRunErrorEvent` (server-side error event in
+			// the stream) and `onRunFailed` (terminal failure of the run
+			// promise) for the same failure. Only surface one.
+			let errorPushed = false;
 			const toolCalls = new Map<string, IToolCallInfo>();
 
 			const mapData = options.mapData ?? defaultMapData;
@@ -193,9 +219,13 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 					textEndReceived = true;
 				},
 				onRunErrorEvent: (params) => {
+					if (errorPushed) return;
+					errorPushed = true;
 					push({ type: "error", message: params.event.message });
 				},
 				onRunFailed: (params) => {
+					if (errorPushed) return;
+					errorPushed = true;
 					push({ type: "error", message: params.error.message });
 				},
 				onRunFinishedEvent: () => {
@@ -223,10 +253,11 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 			};
 
 			const abortController = new AbortController();
+			const onConsumerAbort = () => abortController.abort();
 			if (request.abortSignal) {
-				request.abortSignal.addEventListener("abort", () =>
-					abortController.abort(),
-				);
+				request.abortSignal.addEventListener("abort", onConsumerAbort, {
+					once: true,
+				});
 			}
 
 			const buildData = (): IChatMessageData | undefined => {
@@ -252,11 +283,16 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 					}
 				})
 				.catch((err: Error) => {
-					if (err.name !== "AbortError") {
+					if (err.name !== "AbortError" && !errorPushed) {
+						errorPushed = true;
 						push({ type: "error", message: err.message });
 					}
 				})
 				.finally(() => {
+					request.abortSignal?.removeEventListener(
+						"abort",
+						onConsumerAbort,
+					);
 					const data = buildData();
 					if (streamedText || data) {
 						push({

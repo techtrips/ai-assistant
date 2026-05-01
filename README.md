@@ -116,8 +116,13 @@ Adapters are the integration point between the component and your AI backend.
 | Custom | Implement the `IChatAdapter` interface for any backend. |
 
 ```tsx
-// AG-UI (streaming)
+// AG-UI (streaming) — most servers attach a ChatHistoryProvider keyed by
+// threadId and rehydrate prior turns server-side, so history is implicit.
 const adapter = agUiAdapter({ url: agentUrl, getToken });
+
+// AG-UI against a stateless server — opt in to forwarding prior turns
+// from request.history alongside each new user message.
+const adapter = agUiAdapter({ url: agentUrl, getToken, forwardHistory: true });
 
 // REST (non-streaming)
 const adapter = restAdapter({ url: "/api/chat", getToken });
