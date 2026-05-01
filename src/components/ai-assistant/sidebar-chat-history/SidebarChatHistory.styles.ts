@@ -44,6 +44,18 @@ export const useSidebarChatHistoryStyles = makeStyles({
 		display: "flex",
 		flexDirection: "column",
 		scrollbarWidth: "thin" as const,
+		scrollbarColor: "var(--agent-chat-border) transparent",
+		"::-webkit-scrollbar": { width: "8px", height: "8px" },
+		"::-webkit-scrollbar-track": { backgroundColor: "transparent" },
+		"::-webkit-scrollbar-thumb": {
+			backgroundColor: "var(--agent-chat-border)",
+			borderRadius: "4px",
+			border: "2px solid transparent",
+			backgroundClip: "padding-box",
+		},
+		"::-webkit-scrollbar-thumb:hover": {
+			backgroundColor: "var(--agent-chat-muted)",
+		},
 	},
 	group: {
 		display: "flex",
