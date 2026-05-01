@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.7.0](#170--2026-05-02) | 2026-05-02 | Per-agent isolation extended to **templates** and **user/global settings** (alongside existing prompts, conversations, agent names) — scoped `AIAssistantService` embeds no longer share template lists or settings with the host app |
 | [1.6.0](#160--2026-05-02) | 2026-05-02 | Logs panel polish: turn dropdown (server-driven via new `getThreadTurns`), infinite-scroll pagination, collapsible rows, hide-duplicates toggle, content-derived friendly thread names in history & logs |
 | [1.5.4](#154--2026-05-01) | 2026-05-01 | Re-publish of 1.5.3 (`agUiAdapter` correctness pass: per-call `HttpAgent`, deduped error events, abort-listener cleanup, opt-in `forwardHistory`) |
 | [1.5.3](#153--2026-05-01) | 2026-05-01 | `agUiAdapter` correctness pass: per-call `HttpAgent` (no concurrent-call races), deduped error events, abort-listener cleanup, opt-in `forwardHistory` |
@@ -32,6 +33,24 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+## [1.7.0] — 2026-05-02
+
+Completes the per-agent isolation story so multiple `AIAssistantService` embeds in the same app no longer leak data between each other.
+
+### Added
+
+- **Templates scoped by agent.** `getTemplates()` now appends `?agentName=<scope>` when the service was constructed with an `agentName`, and the API filters the table by the matching `agent` field. Embeds (e.g. Agent Playground) see only templates they own.
+- **Settings scoped by agent.** Both user and global AI settings (`getUserSettings`, `saveUserSettings`, `getGlobalSettings`, `saveGlobalSettings`) now pass the `agentName` query param. The server stores them under a row key of `settings__<agent>`, falling back to the legacy `settings` row when no scope is supplied (back-compat for unscoped hosts).
+
+### Changed
+
+- `ICreateServiceOptions.agentName` doc updated: it now scopes conversations, starter prompts, agent-name list, **templates**, and **user/global settings**.
+
+### Notes
+
+- Hosts that previously instantiated `AIAssistantService` without an `agentName` continue to read/write the global rows — no migration required. Adding `agentName` to an existing embed will start it from a clean per-agent slate.
 
 ---
 ## [1.6.0] — 2026-05-02
