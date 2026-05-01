@@ -96,15 +96,25 @@ export interface IAIAssistantService
 export interface ICreateServiceOptions {
 	baseUrl: string;
 	getToken: () => Promise<string>;
+	/**
+	 * Optional agent scope. When set, `getConversationHistory` filters
+	 * results to threads belonging to this agent (forwarded as the
+	 * `agentName` query param to `/conversations`). Use this when
+	 * embedding the assistant for a specific agent (e.g. the Agent
+	 * Playground) so its sidebar doesn't leak threads from other agents.
+	 */
+	agentName?: string;
 }
 
 export class AIAssistantService implements IAIAssistantService {
 	private readonly baseUrl: string;
 	private readonly getToken: () => Promise<string>;
+	private readonly agentName?: string;
 
 	constructor(options: ICreateServiceOptions) {
 		this.baseUrl = options.baseUrl;
 		this.getToken = options.getToken;
+		this.agentName = options.agentName;
 	}
 
 	private async fetchApi<T>(
@@ -211,6 +221,7 @@ export class AIAssistantService implements IAIAssistantService {
 			pageSize: String(pageSize),
 		});
 		if (search) params.set("search", search);
+		if (this.agentName) params.set("agentName", this.agentName);
 		return this.fetchApi(`/conversations?${params}`, "GET");
 	}
 

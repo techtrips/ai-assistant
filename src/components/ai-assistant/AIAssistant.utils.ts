@@ -91,7 +91,6 @@ export const resolveMessage = (
 	theme?: "light" | "dark",
 	settings?: IAIAssistantSettings,
 	renderers?: IMessageRenderer[],
-	signal?: AbortSignal,
 ): Promise<RenderResult> => {
 	if (message.role !== "assistant") return Promise.resolve(undefined);
 
@@ -105,7 +104,6 @@ export const resolveMessage = (
 		theme,
 		settings,
 		renderers,
-		signal,
 	);
 	const entry = {
 		promise,
@@ -162,7 +160,6 @@ const resolveMessageImpl = async (
 	theme?: "light" | "dark",
 	settings?: IAIAssistantSettings,
 	renderers?: IMessageRenderer[],
-	signal?: AbortSignal,
 ): Promise<RenderResult> => {
 	const effectiveSettings = settings ?? DEFAULT_SETTINGS;
 	const chain = buildRendererChain(
@@ -175,11 +172,15 @@ const resolveMessageImpl = async (
 		theme: theme ?? "light",
 		settings: effectiveSettings,
 		model,
-		signal,
 	};
 
+	// Note: this runs once per message.id (cached) and must always complete.
+	// React StrictMode double-mounts cause the first mount's cleanup to fire
+	// before the chain finishes; if we observed an AbortSignal here, the
+	// cached promise would resolve to undefined and the second mount would
+	// see a permanent "no result". The hook layer (useResolveMessage) already
+	// discards stale results via its `disposed` flag.
 	for (const renderer of chain) {
-		if (signal?.aborted) return undefined;
 		try {
 			const result = await renderer.render(ctx);
 			if (result !== undefined && result !== null) return result;

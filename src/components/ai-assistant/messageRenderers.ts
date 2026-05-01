@@ -32,12 +32,6 @@ export interface IRenderContext {
 	theme: "light" | "dark";
 	settings: IAIAssistantSettings;
 	model?: string;
-	/**
-	 * Optional abort signal. Renderers performing async work (template
-	 * fetches, dynamic UI calls) should forward this and bail out fast
-	 * when the host component unmounts or the request is cancelled.
-	 */
-	signal?: AbortSignal;
 }
 
 /**

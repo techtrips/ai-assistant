@@ -66,12 +66,30 @@ export type ChatEvent =
 			data?: Record<string, unknown>;
 	  };
 
+/**
+ * A single prior turn from the conversation, in adapter-friendly form.
+ * Adapters that talk to a stateless backend (REST, custom agent, etc.) can
+ * forward this so the agent has context of the conversation so far. Adapters
+ * for stateful backends that already persist history server-side (AG-UI with
+ * a `ChatHistoryProvider`, for example) can ignore it.
+ */
+export interface IChatHistoryEntry {
+	role: "user" | "assistant";
+	content: string;
+}
+
 export interface ISendMessageRequest {
 	threadId: string;
 	messageId: string;
 	message: string;
 	model?: string;
 	abortSignal?: AbortSignal;
+	/**
+	 * Prior conversation turns (oldest → newest), excluding the current
+	 * `message`. Already trimmed by the host to a recency window so adapters
+	 * don't need to re-cap.
+	 */
+	history?: ReadonlyArray<IChatHistoryEntry>;
 }
 
 export interface IChatAdapter {

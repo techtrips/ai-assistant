@@ -1,11 +1,35 @@
 import { useCallback, useRef, useState } from "react";
-import type { ChatEvent, IChatAdapter } from "./adapters/types";
+import type {
+	ChatEvent,
+	IChatAdapter,
+	IChatHistoryEntry,
+} from "./adapters/types";
 import type { IChatMessage, IChatMessageData } from "./AIAssistant.types";
 
 const nextId = () =>
 	`msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 const nextThreadId = () =>
 	`thread-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+/**
+ * Maximum number of prior turns (user + assistant) forwarded to the adapter
+ * on each `sendMessage`. Caps the per-request payload so a long-running
+ * thread doesn't grow the request linearly while still giving the agent
+ * enough context for follow-up questions.
+ */
+const HISTORY_WINDOW = 20;
+
+const buildHistory = (messages: IChatMessage[]): IChatHistoryEntry[] => {
+	const entries: IChatHistoryEntry[] = [];
+	for (const msg of messages) {
+		if (msg.role !== "user" && msg.role !== "assistant") continue;
+		if (typeof msg.content !== "string" || msg.content.length === 0) continue;
+		entries.push({ role: msg.role, content: msg.content });
+	}
+	return entries.length > HISTORY_WINDOW
+		? entries.slice(entries.length - HISTORY_WINDOW)
+		: entries;
+};
 
 export interface IUseChatStateResult {
 	messages: IChatMessage[];
@@ -49,7 +73,14 @@ export const useChatState = (
 				timestamp: new Date().toISOString(),
 			};
 
-			setMessages((prev) => [...prev, userMsg]);
+			// Snapshot history BEFORE we append the new user message so the
+			// adapter sees only prior turns; the current message is sent
+			// separately as `request.message`.
+			let history: ReadonlyArray<IChatHistoryEntry> | undefined;
+			setMessages((prev) => {
+				history = buildHistory(prev);
+				return [...prev, userMsg];
+			});
 			setIsStreaming(true);
 			setStreamingText("");
 			setError(undefined);
@@ -71,6 +102,7 @@ export const useChatState = (
 						message: text,
 						model,
 						abortSignal: ac.signal,
+						history,
 					});
 
 					for await (const event of stream) {

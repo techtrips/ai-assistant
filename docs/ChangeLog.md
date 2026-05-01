@@ -8,6 +8,9 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.3.0](#130--2026-05-01) | 2026-05-01 | `AIAssistantService` accepts an `agentName` scope so embeds (e.g. Agent Playground) get a sidebar with only their own threads |
+| [1.2.0](#120--2026-05-01) | 2026-05-01 | Conversation history forwarded on every `sendMessage` so stateless adapters can give the agent context of prior turns |
+| [1.1.2](#112--2026-05-01) | 2026-05-01 | Fix StrictMode-induced cache poisoning that left assistant messages rendering as raw markdown; removed AbortSignal threading from the cached resolver |
 | [1.1.1](#111--2026-05-01) | 2026-05-01 | Revert lazy loading of `marked` and `dompurify` (kept lazy for `adaptivecards`); markdown messages were rendering as raw text in some bundles |
 | [1.1.0](#110--2026-05-01) | 2026-05-01 | Scalability pass: lazy-loaded heavy deps, abortable render pipeline, sanitize memoization, shared adapter HTTP helpers, `sideEffects` for tree-shaking |
 | [1.0.1](#101--2026-05-01) | 2026-05-01 | Structured chat error events with `onError` prop and `ChatErrorCode` codes, themed sidebar history scrollbar |
@@ -21,6 +24,42 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+
+## [1.3.0] — 2026-05-01
+
+### Added
+
+- **`AIAssistantService` agent scope.** `ICreateServiceOptions` now accepts an optional `agentName`. When provided, `getConversationHistory` forwards it as `?agentName=` to `/conversations`, so the chat-history sidebar surfaces only threads belonging to that agent. Use this when embedding `<AIAssistant />` for a specific agent (e.g. the Agent Playground's `PlaygroundOrchestrator`) so the sidebar isn't polluted by threads from the host app's main assistant. The API filter is additive — existing callers that omit `agentName` still see all of the user's conversations.
+
+---
+
+## [1.2.0] — 2026-05-01
+
+### Added
+
+- **Conversation history on `ISendMessageRequest`.** The chat host now snapshots prior user/assistant turns from the on-screen thread (capped at the last 20 turns) and forwards them to the adapter as `request.history: ReadonlyArray<ChatHistoryEntry>`. Stateless backends — custom REST agents, A2A endpoints, the playground orchestrator's LLM call — can replay them so the agent has memory of the conversation without persisting anything client-side. Stateful adapters (AG-UI with a `ChatHistoryProvider`) can ignore the field; their server-managed history wins.
+- New exported type `ChatHistoryEntry` (`{ role: "user" | "assistant"; content: string }`).
+- `restAdapter` includes `history` in the default request body so any REST endpoint that POSTs through the helper gets it for free.
+
+### Notes
+
+- Existing adapters that override `mapBody` are unaffected and can opt-in by reading `request.history`.
+- The window size (20 turns) is intentionally small to keep payloads bounded; long-running threads should rely on the server's own history provider rather than the client window.
+
+---
+
+## [1.1.2] — 2026-05-01
+
+### Fixed
+
+- **Markdown messages rendered as raw text after the first render in StrictMode.** The 1.1.0 scalability pass threaded an `AbortSignal` through the cached `resolveMessage` chain. In React StrictMode the first effect mount aborts on cleanup, the chain bails out with `undefined`, and that `undefined` gets cached forever — so the second mount (and all subsequent reads) saw "no result" and the bubble fell back to the raw-text branch. The signal threading has been removed; the hook layer's `disposed` flag is the only thing that needs to swallow stale results, and it doesn't poison the cache.
+
+### Changed
+
+- `IRenderContext.signal` removed (it was added in 1.1.0 and never observed by any renderer in practice).
+- `resolveMessage` no longer accepts an `AbortSignal`. Renderers always run to completion so cached promises resolve to a stable value across remounts.
 
 ---
 

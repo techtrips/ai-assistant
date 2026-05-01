@@ -96,6 +96,7 @@ export const restAdapter = (options: RestAdapterOptions): IChatAdapter => {
 			messageId: request.messageId,
 			message: request.message,
 			model: request.model,
+			history: request.history,
 		}));
 
 	return {

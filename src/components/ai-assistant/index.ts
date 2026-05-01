@@ -46,6 +46,7 @@ export type {
 	ChatErrorCodeLike,
 	ChatEvent,
 	IChatAdapter as ChatAdapter,
+	IChatHistoryEntry as ChatHistoryEntry,
 	ISendMessageRequest as SendMessageRequest,
 	IToolCallInfo as ToolCallInfo,
 	MapDataFn,

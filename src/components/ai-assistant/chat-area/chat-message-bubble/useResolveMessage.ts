@@ -48,7 +48,6 @@ export const useResolveMessage = (
 		}
 
 		let disposed = false;
-		const controller = new AbortController();
 
 		resolveMessage(
 			message,
@@ -57,7 +56,6 @@ export const useResolveMessage = (
 			theme,
 			settings,
 			renderers,
-			controller.signal,
 		)
 			.then((resolved) => {
 				if (!disposed) setResult({ result: resolved });
@@ -68,7 +66,6 @@ export const useResolveMessage = (
 
 		return () => {
 			disposed = true;
-			controller.abort();
 		};
 	}, [message.id, skip]);
 
