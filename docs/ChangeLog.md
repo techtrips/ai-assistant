@@ -8,6 +8,8 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.5.4](#154--2026-05-01) | 2026-05-01 | Re-publish of 1.5.3 (`agUiAdapter` correctness pass: per-call `HttpAgent`, deduped error events, abort-listener cleanup, opt-in `forwardHistory`) |
+| [1.5.3](#153--2026-05-01) | 2026-05-01 | `agUiAdapter` correctness pass: per-call `HttpAgent` (no concurrent-call races), deduped error events, abort-listener cleanup, opt-in `forwardHistory` |
 | [1.5.0](#150--2026-05-01) | 2026-05-01 | **Breaking:** default renderer chain reordered to `template → markdown → adaptiveCard → dynamicUi` so the assistant's prose answer wins over raw tool payloads |
 | [1.4.2](#142--2026-05-01) | 2026-05-01 | Adaptive Card renderer unwraps MCP tool-result envelopes (also covers reloaded conversation history) |
 | [1.4.1](#141--2026-05-01) | 2026-05-01 | AG-UI adapter unwraps MCP content blocks before exposing them as `data.payload` |
@@ -31,7 +33,35 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 
 ---
+## [1.5.4] — 2026-05-01
 
+Re-publish of 1.5.3 with no functional changes. See the [1.5.3](#153--2026-05-01) entry for details.
+
+### Fixed
+
+- **`agUiAdapter` no longer races on concurrent `sendMessage` calls.** Previously a single cached `HttpAgent` was reused across calls and mutated on every run (`threadId`, `headers`, `model`, `setMessages`). Two concurrent chats from the same adapter (multi-thread UI, regenerate-while-typing, two `<AIAssistant />` mounts sharing one adapter) could clobber each other's thread id and message list mid-flight. A fresh `HttpAgent` is now constructed per `sendMessage` invocation.
+- **Single error event per failure.** AG-UI emits both `onRunErrorEvent` and `onRunFailed` for one failure; `useChatState` was rendering two error bubbles. The adapter now dedupes via an internal flag so consumers see exactly one `{ type: "error" }` per failure.
+- **Abort listener leak.** The listener attached to `request.abortSignal` is now registered with `{ once: true }` and explicitly removed in `finally`. Previously each `sendMessage` invocation left a closure attached to the consumer's signal.
+
+### Added
+
+- **`forwardHistory` option on `agUiAdapter`.** When `true`, prior conversation turns from `request.history` are sent alongside the user message in each AG-UI run. Default `false` because most AG-UI servers (TechTrips included) attach a `ChatHistoryProvider` keyed by `threadId` and rehydrate prior turns server-side — forwarding history in that setup would duplicate every turn. Set to `true` for stateless AG-UI servers.
+
+---
+
+## [1.5.3] — 2026-05-01
+
+### Fixed
+
+- **`agUiAdapter` no longer races on concurrent `sendMessage` calls.** A fresh `HttpAgent` is now constructed per `sendMessage` invocation instead of reusing a single cached instance whose `threadId` / `headers` / `model` / `messages` were mutated on every run.
+- **Single error event per failure.** Deduped `onRunErrorEvent` / `onRunFailed` / catch-block error sources so a single failure produces a single `{ type: "error" }` event.
+- **Abort listener leak.** Listener attached to `request.abortSignal` is now registered with `{ once: true }` and explicitly removed in `finally`.
+
+### Added
+
+- **`forwardHistory` option on `agUiAdapter`.** Opt-in forwarding of prior conversation turns from `request.history` for stateless AG-UI servers. Default `false`.
+
+---
 ## [1.5.0] — 2026-05-01
 
 ### Changed (mildly breaking)
