@@ -40,7 +40,9 @@ export type { IAIAssistantContextValue as AIAssistantContextValue } from "./AIAs
 export { useAIAssistantContext } from "./AIAssistantContext";
 export { agUiAdapter, defaultMapData } from "./adapters/agUiAdapter";
 export { restAdapter } from "./adapters/restAdapter";
+export { ChatErrorCode } from "./adapters/types";
 export type {
+	ChatErrorCodeLike,
 	ChatEvent,
 	IChatAdapter as ChatAdapter,
 	ISendMessageRequest as SendMessageRequest,

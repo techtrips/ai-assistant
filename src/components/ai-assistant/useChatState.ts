@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import type { IChatAdapter } from "./adapters/types";
+import type { ChatEvent, IChatAdapter } from "./adapters/types";
 import type { IChatMessage, IChatMessageData } from "./AIAssistant.types";
 
 const nextId = () =>
@@ -22,7 +22,10 @@ export interface IUseChatStateResult {
 	newChat: () => void;
 }
 
-export const useChatState = (adapter: IChatAdapter): IUseChatStateResult => {
+export const useChatState = (
+	adapter: IChatAdapter,
+	onError?: (event: Extract<ChatEvent, { type: "error" }>) => void,
+): IUseChatStateResult => {
 	const [messages, setMessages] = useState<IChatMessage[]>([]);
 	const [threadId, setThreadId] = useState(() => nextThreadId());
 	const [isStreaming, setIsStreaming] = useState(false);
@@ -95,6 +98,7 @@ export const useChatState = (adapter: IChatAdapter): IUseChatStateResult => {
 										timestamp: new Date().toISOString(),
 									},
 								]);
+								onError?.(event);
 								break;
 						}
 					}

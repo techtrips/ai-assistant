@@ -74,6 +74,7 @@ export const useAIAssistant = ({
 	permissions = [AIAssistantPermission.View],
 	context,
 	messageRenderers,
+	onError,
 }: Pick<
 	IAIAssistantProps,
 	| "chatAdapter"
@@ -84,6 +85,7 @@ export const useAIAssistant = ({
 	| "permissions"
 	| "context"
 	| "messageRenderers"
+	| "onError"
 >) => {
 	const isMobile = useSyncExternalStore(subscribeMobile, getIsMobile);
 	const [isFullScreen, setIsFullScreen] = useState(defaultFullScreen);
@@ -101,10 +103,15 @@ export const useAIAssistant = ({
 		sendMessage,
 		abort,
 		newChat,
-	} = useChatState(chatAdapter);
+	} = useChatState(chatAdapter, onError);
 
 	const [starterPrompts, setStarterPrompts] = useState<IStarterPrompt[]>([]);
-	const [starterPromptsLoading, setStarterPromptsLoading] = useState(true);
+	// When no service is provided, there's nothing to fetch — start unloaded
+	// so consumers using the assistant in chat-only mode don't see a forever
+	// spinner on the starter-prompt chips.
+	const [starterPromptsLoading, setStarterPromptsLoading] = useState(
+		Boolean(service),
+	);
 	const [agentNames, setAgentNames] = useState<string[]>([]);
 	const [settings, setSettings] =
 		useState<IAIAssistantSettings>(DEFAULT_SETTINGS);

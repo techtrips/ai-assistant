@@ -23,6 +23,7 @@ export const AIAssistant = (props: IAIAssistantProps) => {
 		headerText = "AI Assistant",
 		showFullScreenToggle = true,
 		className,
+		style,
 		onClose,
 	} = props;
 
@@ -140,12 +141,14 @@ export const AIAssistant = (props: IAIAssistantProps) => {
 		<AIAssistantContext.Provider value={contextValue}>
 			<div
 				className={mergeClasses(
-					className ?? classes.root,
+					classes.root,
 					effectiveFullScreen && classes.rootFullScreen,
+					className,
 				)}
 				style={{
 					...themeVars,
 					...(isSidePanel ? { width: sidePanelWidth } : undefined),
+					...style,
 				}}
 			>
 				{isSidePanel && (

@@ -1,5 +1,5 @@
 import type { IAIAssistantService } from "./AIAssistant.services";
-import type { IChatAdapter } from "./adapters/types";
+import type { ChatErrorCodeLike, IChatAdapter } from "./adapters/types";
 import type { AIAssistantExtension } from "./extensions/types";
 import type { IMessageRenderer } from "./messageRenderers";
 import { MessageRendererType } from "./messageRenderers";
@@ -110,11 +110,23 @@ export interface IAIAssistantProps {
 	defaultFullScreen?: boolean;
 	showFullScreenToggle?: boolean;
 	className?: string;
+	style?: React.CSSProperties;
 	extensions?: AIAssistantExtension[];
 	service?: IAIAssistantService;
 	permissions?: AIAssistantPermission[];
 	context?: IAIAssistantContext;
 	/** Message renderer pipeline. Pass only the renderers you want. If omitted, all defaults apply (filtered by settings). Custom-type renderers always run first. */
 	messageRenderers?: IMessageRenderer[];
+	/**
+	 * Invoked whenever an adapter yields an `error` event. Receives the full
+	 * event so structured `code`/`data` fields can drive consumer UI (e.g. a
+	 * token re-entry dialog on `code === ChatErrorCode.AuthRequired`).
+	 */
+	onError?: (event: {
+		type: "error";
+		message: string;
+		code?: ChatErrorCodeLike;
+		data?: Record<string, unknown>;
+	}) => void;
 	onClose?: () => void;
 }
