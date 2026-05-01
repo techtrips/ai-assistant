@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.6.0](#160--2026-05-02) | 2026-05-02 | Logs panel polish: turn dropdown (server-driven via new `getThreadTurns`), infinite-scroll pagination, collapsible rows, hide-duplicates toggle, content-derived friendly thread names in history & logs |
 | [1.5.4](#154--2026-05-01) | 2026-05-01 | Re-publish of 1.5.3 (`agUiAdapter` correctness pass: per-call `HttpAgent`, deduped error events, abort-listener cleanup, opt-in `forwardHistory`) |
 | [1.5.3](#153--2026-05-01) | 2026-05-01 | `agUiAdapter` correctness pass: per-call `HttpAgent` (no concurrent-call races), deduped error events, abort-listener cleanup, opt-in `forwardHistory` |
 | [1.5.0](#150--2026-05-01) | 2026-05-01 | **Breaking:** default renderer chain reordered to `template → markdown → adaptiveCard → dynamicUi` so the assistant's prose answer wins over raw tool payloads |
@@ -31,6 +32,35 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+## [1.6.0] — 2026-05-02
+
+Logs side-panel reaches feature-parity with the chat: pick a turn, scroll back through history, hide noisy intermediate snapshots, and see human-readable thread names everywhere.
+
+### Added
+
+- **Logs turn dropdown.** New `getThreadTurns(threadId)` on `IConversationService` returns one entry per user message (`runId`, label, `firstSeen`). Default `AIAssistantService` calls `GET /conversations/{threadId}/turns`. The Logs panel populates its dropdown from this endpoint so older turns appear without paginating through every event. Falls back to deriving turns from loaded events when the host service doesn't expose the new method.
+- **Infinite-scroll pagination.** `useRawLogs` now requests events page-by-page (50 per page, newest first); scrolling near the top of the list prepends the previous batch and preserves the visible row.
+- **Hide duplicates toggle.** Client-side option (default on) collapses consecutive identical assistant snapshots within a turn — useful for orchestrator agents that emit intermediate state. Toggle is hidden when there are no events.
+- **Collapsible event rows.** Each row now starts collapsed with a chevron; click to expand/collapse the content body.
+- **Content-derived friendly thread names.** New `friendlyThreadName(text)` util takes a chat message (or any text) and produces a short title-cased label (e.g. `Add Hook React`). Used in the sidebar chat history, the conversation history extension, and the Logs page header.
+
+### Changed
+
+- **Logs page header** now shows `<friendly-name> — Logs` for "All turns" or `Turn N: <prompt>` when a specific turn is selected (so the changing prefix stays visible even when the header is truncated).
+- **`PageLayout`** title truncates with ellipsis and surfaces the full text via the `title` attribute.
+- **Conversation history sidebar / panel** display the friendly name as the primary label; the original first-message text moves to the tooltip.
+- **Server `getThreadEvents`** now returns consecutive identical assistant snapshots verbatim (was previously deduping). The client controls the toggle.
+
+### Removed
+
+- `ChatMessageBubble` no longer renders the `Tools used` footer; tool activity is visible in the Logs panel instead.
+
+### Notes for hosts
+
+- The `getThreadTurns` method is **optional**. Existing services without it continue to work — the dropdown will fall back to deriving turns from the loaded event window.
+- API hosts implementing the default service should expose `GET /conversations/:threadId/turns` (Hono route + controller + service example included in `techtrips-api`).
 
 ---
 ## [1.5.4] — 2026-05-01
