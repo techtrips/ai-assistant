@@ -2,7 +2,7 @@
 	"name": "@techtrips/ai-assistant",
 	"module": "lib/index.js",
 	"types": "lib/index.d.ts",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"scripts": {
 		"clean": "rimraf lib",
 		"build": "npm run clean && tsc -p tsconfig.prod.json",
@@ -72,11 +72,11 @@
 		"react-ag-ui",
 		"agent-ui-controls",
 		"react-agent-ui-controls",
-		"agent-ui-react-controls",		
+		"agent-ui-react-controls",
 		"agent-based-ui",
 		"react-agent-based-ui",
 		"agent-framework-ui",
-		"react-agent-framework-ui",	
+		"react-agent-framework-ui",
 		"agentui",
 		"agentui-react",
 		"agentui-library",
@@ -86,7 +86,7 @@
 		"agentui-controls",
 		"react-agentui-controls",
 		"agentui-react-controls",
-		"ai"		
+		"ai"
 	],
 	"license": "MIT",
 	"author": "techtrips",

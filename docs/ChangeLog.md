@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.0.1](#101--2026-05-01) | 2026-05-01 | - |
 | [1.0.0](#100--2026-04-21) | 2026-04-21 | Pluggable message rendering pipeline, Adaptive Card renderer, unified settings, `chatAdapter` prop rename |
 | [0.1.7](#017--2026-04-20) | 2026-04-20 | `renderMessage` gated on `data` presence instead of `payload` |
 | [0.1.6](#016--2026-04-20) | 2026-04-20 | Generic adapter data mapping, typed IChatMessageData, resolution pipeline fixes |
@@ -18,6 +19,22 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+
+## [1.0.1] — 2026-05-01
+
+### Added
+
+- _Update this section before publishing_
+
+### Changed
+
+- _Update this section before publishing_
+
+### Fixed
+
+- _Update this section before publishing_
 
 ---
 
