@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.4.1](#141--2026-05-01) | 2026-05-01 | AG-UI adapter unwraps MCP content blocks before exposing them as `data.payload` |
 | [1.4.0](#140--2026-05-01) | 2026-05-01 | Hover-revealed copy button on every chat message |
 | [1.3.1](#131--2026-05-01) | 2026-05-01 | Scoped `AIAssistantService` now also constrains starter prompts and agent-name list to the configured agent |
 | [1.3.0](#130--2026-05-01) | 2026-05-01 | `AIAssistantService` accepts an `agentName` scope so embeds (e.g. Agent Playground) get a sidebar with only their own threads |
@@ -26,6 +27,14 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+
+## [1.4.1] — 2026-05-01
+
+### Fixed
+
+- **MCP content-block unwrapping in `agUiAdapter`.** MCP tools return their results wrapped as `[{ "type": "text", "text": "<inner>" }, ...]`. The previous `defaultMapData` exposed that wrapper directly as `data.payload`, which caused the Adaptive Card renderer to render a useless 2-column “Type | Text” table whose row contained the raw inner JSON — burying the assistant's actual answer. The mapper now detects the content-block shape, unwraps to the inner content, and JSON-parses each block. Structured inner content (rich item arrays, key/value objects) flows to AC and renders properly; plain-text inner content is dropped from `payload` so the assistant's markdown answer wins instead.
 
 ---
 

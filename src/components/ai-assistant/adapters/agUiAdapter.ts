@@ -41,14 +41,71 @@ class ExtendedHttpAgent extends HttpAgent {
 /**
  * Default data mapper: tool results → payload (stringified), first tool name → templateId.
  * Works for agents that follow the convention of tool name = template name.
+ *
+ * MCP-shape unwrap: MCP tools return their result as a content-block array
+ * like `[{ "type": "text", "text": "<inner-json-or-prose>" }, ...]`. Treating
+ * that wrapper as the payload causes the Adaptive Card renderer to render a
+ * useless 2-column "Type | Text" table whose cell contains the raw inner
+ * JSON. We detect that shape and unwrap to the inner content. If the inner
+ * content is itself a JSON object/array, we expose THAT as the payload (so
+ * AC can render it properly as item cards or a real table). Otherwise we
+ * drop the payload entirely so the markdown renderer can take over with the
+ * assistant's own prose.
  */
+const isMcpContentBlock = (v: unknown): v is { type: string; text?: string } =>
+	typeof v === "object" &&
+	v !== null &&
+	(v as { type?: unknown }).type === "text" &&
+	typeof (v as { text?: unknown }).text === "string";
+
+const unwrapMcpContent = (parsed: unknown): unknown => {
+	// Single content block.
+	if (isMcpContentBlock(parsed)) {
+		const inner = (parsed as { text: string }).text;
+		try {
+			return JSON.parse(inner);
+		} catch {
+			return inner;
+		}
+	}
+	// Array of content blocks.
+	if (
+		Array.isArray(parsed) &&
+		parsed.length > 0 &&
+		parsed.every(isMcpContentBlock)
+	) {
+		const texts = (parsed as Array<{ text: string }>).map((b) => b.text);
+		// If a single block, unwrap to its inner JSON / string directly.
+		if (texts.length === 1) {
+			try {
+				return JSON.parse(texts[0]);
+			} catch {
+				return texts[0];
+			}
+		}
+		// Multiple blocks: try to JSON-parse each; if all parse, return array.
+		const parsedAll: unknown[] = [];
+		let allJson = true;
+		for (const t of texts) {
+			try {
+				parsedAll.push(JSON.parse(t));
+			} catch {
+				allJson = false;
+				break;
+			}
+		}
+		return allJson ? parsedAll : texts.join("\n\n");
+	}
+	return parsed;
+};
+
 export const defaultMapData: MapDataFn = (toolCalls) => {
 	const results = toolCalls
 		.filter((tc) => tc.result)
 		.map((tc) => {
 			try {
 				// biome-ignore lint/style/noNonNullAssertion: guarded by filter
-				return JSON.parse(tc.result!);
+				return unwrapMcpContent(JSON.parse(tc.result!));
 			} catch {
 				return tc.result;
 			}
@@ -56,7 +113,12 @@ export const defaultMapData: MapDataFn = (toolCalls) => {
 	let payload: string | undefined;
 	if (results.length > 0) {
 		const p = results.length === 1 ? results[0] : results;
-		payload = typeof p === "string" ? p : JSON.stringify(p);
+		// Only expose a payload when the unwrapped result is structured data
+		// the AC / template / dynamic-ui renderers can actually use. Plain
+		// strings should fall through to the assistant's markdown text.
+		if (p !== null && p !== undefined && typeof p === "object") {
+			payload = JSON.stringify(p);
+		}
 	}
 	const templateId = toolCalls[0]?.name || undefined;
 	return {
