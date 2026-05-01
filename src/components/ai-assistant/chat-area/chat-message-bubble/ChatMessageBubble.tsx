@@ -4,6 +4,7 @@ import type { IChatMessage } from "../../AIAssistant.types";
 import { useChatMessageBubbleStyles } from "./ChatMessageBubble.styles";
 import type { IChatMessageBubbleProps } from "./ChatMessageBubble.types";
 import { formatTime } from "./ChatMessageBubble.utils";
+import { CopyMessageButton } from "./CopyMessageButton";
 import { IsolatedHtmlRenderer } from "./IsolatedHtmlRenderer";
 import { useResolveMessage } from "./useResolveMessage";
 
@@ -21,11 +22,15 @@ export const ChatMessageBubble = ({ message }: IChatMessageBubbleProps) => {
 
 	if (message.role === "user") {
 		return (
-			<div className={classes.userBlock}>
+			<div className={`${classes.userBlock} ${classes.userHover}`}>
 				<span className={classes.userTime}>
 					{formatTime(message.timestamp)}
 				</span>
 				<div className={classes.userBubble}>{message.content}</div>
+				<CopyMessageButton
+					message={message}
+					className={`${classes.copyButton} ${classes.copyButtonUser}`}
+				/>
 			</div>
 		);
 	}
@@ -48,7 +53,7 @@ export const ChatMessageBubble = ({ message }: IChatMessageBubbleProps) => {
 	const isHtml = typeof resolved === "string";
 
 	return (
-		<div className={classes.assistantBlock}>
+		<div className={`${classes.assistantBlock} ${classes.assistantHover}`}>
 			<div className={classes.assistantPreamble}>
 				<span className={classes.avatar}>
 					<SparkleRegular fontSize={18} />
@@ -74,6 +79,12 @@ export const ChatMessageBubble = ({ message }: IChatMessageBubbleProps) => {
 				<div className={classes.assistantBubble}>
 					{message.content || <RawDataFallback message={message} />}
 				</div>
+			)}
+			{!isLoading && (
+				<CopyMessageButton
+					message={message}
+					className={`${classes.copyButton} ${classes.copyButtonAssistant}`}
+				/>
 			)}
 		</div>
 	);

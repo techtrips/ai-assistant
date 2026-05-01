@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.4.0](#140--2026-05-01) | 2026-05-01 | Hover-revealed copy button on every chat message |
 | [1.3.1](#131--2026-05-01) | 2026-05-01 | Scoped `AIAssistantService` now also constrains starter prompts and agent-name list to the configured agent |
 | [1.3.0](#130--2026-05-01) | 2026-05-01 | `AIAssistantService` accepts an `agentName` scope so embeds (e.g. Agent Playground) get a sidebar with only their own threads |
 | [1.2.0](#120--2026-05-01) | 2026-05-01 | Conversation history forwarded on every `sendMessage` so stateless adapters can give the agent context of prior turns |
@@ -25,6 +26,14 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+
+## [1.4.0] — 2026-05-01
+
+### Added
+
+- **Copy button on every chat message.** Hovering (or keyboard-focusing) a user or assistant message reveals a small Fluent UI subtle button that copies the message to the clipboard. Copies `message.content` (the original markdown source) when present — great for pasting answers into another agent, doc, or PR — and falls back to `message.data.payload` for tool-result-only messages. Tooltip flips to “Copied” for 1.5s after each successful copy. Pure UI — no API surface change.
 
 ---
 

@@ -107,4 +107,40 @@ export const useChatMessageBubbleStyles = makeStyles({
 		...shorthands.padding("10px"),
 		...shorthands.borderRadius("6px"),
 	},
+	userHover: {
+		position: "relative",
+		display: "flex",
+		flexDirection: "column",
+		alignItems: "flex-end",
+		...shorthands.gap("2px"),
+		":hover .agent-chat-copy, :focus-within .agent-chat-copy": {
+			opacity: 1,
+			pointerEvents: "auto",
+		},
+	},
+	assistantHover: {
+		position: "relative",
+		":hover .agent-chat-copy, :focus-within .agent-chat-copy": {
+			opacity: 1,
+			pointerEvents: "auto",
+		},
+	},
+	copyButton: {
+		opacity: 0,
+		pointerEvents: "none",
+		transitionProperty: "opacity",
+		transitionDuration: "120ms",
+		minWidth: "auto",
+		height: "24px",
+		width: "24px",
+		...shorthands.padding("0"),
+	},
+	copyButtonUser: {
+		marginTop: "2px",
+		alignSelf: "flex-end",
+	},
+	copyButtonAssistant: {
+		marginLeft: "40px",
+		marginTop: "4px",
+	},
 });
