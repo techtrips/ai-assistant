@@ -148,8 +148,14 @@ export class AIAssistantService implements IAIAssistantService {
 
 	// Starter Prompts
 	getStarterPrompts(agentNames?: string[]): Promise<IEntity<IStarterPrompt[]>> {
+		// When the service is scoped to a specific agent, ignore the caller's
+		// list and constrain to that agent so embeds (e.g. Agent Playground)
+		// don't surface prompts from the host app's other agents.
+		const effectiveAgents = this.agentName
+			? [this.agentName]
+			: (agentNames ?? []);
 		return this.fetchApi("/starter-prompts/search", "POST", {
-			agentNames: agentNames ?? [],
+			agentNames: effectiveAgents,
 			tags: [],
 		});
 	}
@@ -195,6 +201,11 @@ export class AIAssistantService implements IAIAssistantService {
 	}
 
 	getAgentNames(): Promise<IEntity<string[]>> {
+		// When scoped, short-circuit so consumers see only the configured agent
+		// (avoids loading every agent's starter prompts/templates upstream).
+		if (this.agentName) {
+			return Promise.resolve({ data: [this.agentName], loading: false });
+		}
 		return this.fetchApi("/templates/agents", "GET");
 	}
 

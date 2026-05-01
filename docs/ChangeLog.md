@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.3.1](#131--2026-05-01) | 2026-05-01 | Scoped `AIAssistantService` now also constrains starter prompts and agent-name list to the configured agent |
 | [1.3.0](#130--2026-05-01) | 2026-05-01 | `AIAssistantService` accepts an `agentName` scope so embeds (e.g. Agent Playground) get a sidebar with only their own threads |
 | [1.2.0](#120--2026-05-01) | 2026-05-01 | Conversation history forwarded on every `sendMessage` so stateless adapters can give the agent context of prior turns |
 | [1.1.2](#112--2026-05-01) | 2026-05-01 | Fix StrictMode-induced cache poisoning that left assistant messages rendering as raw markdown; removed AbortSignal threading from the cached resolver |
@@ -24,6 +25,14 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+
+## [1.3.1] — 2026-05-01
+
+### Fixed
+
+- **Scoped service no longer leaks other agents' starter prompts.** When `AIAssistantService` is constructed with `agentName`, `getStarterPrompts()` now ignores the caller's `agentNames` argument and constrains to the configured agent, and `getAgentNames()` short-circuits to `[agentName]`. This stops the embed from auto-loading and rendering starter prompt cards belonging to the host app's other agents (visible in 1.3.0 inside the Agent Playground).
 
 ---
 
