@@ -15,6 +15,7 @@ A React component library for building agent-based AI assistants. Provides a pro
 - [Components](#components)
 - [Adapters](#adapters)
 - [Message Rendering](#message-rendering)
+- [Error Handling](#error-handling)
 - [Extensions](#extensions)
 - [Dependencies](#dependencies)
 - [Browser Support](#browser-support)
@@ -223,6 +224,35 @@ const myACRenderer = createAdaptiveCardRenderer({
 ```
 
 See the [Message Rendering Pipeline](https://github.com/techtrips/ai-assistant/blob/main/docs/AIAssistant.md#message-rendering-pipeline) section in the AIAssistant docs for the full `IMessageRenderer`, `IRenderContext`, and `IAdaptiveCardAdapter` API.
+
+---
+
+## Error Handling
+
+The assistant emits structured error events to the optional `onError` prop whenever a chat request fails (network error, adapter rejection, 401/403, etc.). Each event carries a human-readable `message`, an optional `code: ChatErrorCodeLike` for programmatic routing, and an optional `data` bag for adapter-specific context.
+
+```tsx
+import { AIAssistant, ChatErrorCode } from "@techtrips/ai-assistant";
+import type { IChatErrorEvent } from "@techtrips/ai-assistant";
+
+<AIAssistant
+  chatAdapter={adapter}
+  onError={(event: IChatErrorEvent) => {
+    if (event.code === ChatErrorCode.AuthRequired) {
+      // re-prompt the user for a token, refresh credentials, etc.
+      promptForToken(event.data);
+      return;
+    }
+    console.error("Chat error:", event.message, event.data);
+  }}
+/>;
+```
+
+`ChatErrorCode` is exported as a const-object so it works in both runtime checks and type narrowing. Currently exported codes:
+
+| Code | Meaning |
+|------|---------|
+| `AuthRequired` | The backend rejected the request with 401/403 — a fresh token is needed. |
 
 ---
 
