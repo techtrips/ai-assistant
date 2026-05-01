@@ -182,11 +182,10 @@ export interface ICreateServiceOptions {
 	baseUrl: string;
 	getToken: () => Promise<string>;
 	/**
-	 * Optional agent scope. When set, `getConversationHistory` filters
-	 * results to threads belonging to this agent (forwarded as the
-	 * `agentName` query param to `/conversations`). Use this when
-	 * embedding the assistant for a specific agent (e.g. the Agent
-	 * Playground) so its sidebar doesn't leak threads from other agents.
+	 * Optional agent scope. When set, the service constrains
+	 * conversations, starter prompts, agent names, templates, and
+	 * settings (user + global) to this agent so embeds (e.g. the Agent
+	 * Playground) don't share state with the host app's other agents.
 	 */
 	agentName?: string;
 }
@@ -271,7 +270,10 @@ export class AIAssistantService implements IAIAssistantService {
 
 	// Templates
 	getTemplates(): Promise<IEntity<ITemplate[]>> {
-		return this.fetchApi("/templates", "GET");
+		const qs = this.agentName
+			? `?agentName=${encodeURIComponent(this.agentName)}`
+			: "";
+		return this.fetchApi(`/templates${qs}`, "GET");
 	}
 
 	getTemplateById(templateId: string): Promise<IEntity<ITemplate>> {
@@ -391,23 +393,37 @@ export class AIAssistantService implements IAIAssistantService {
 
 	/* ── Settings ── */
 
+	private settingsQuery(): string {
+		return this.agentName
+			? `?agentName=${encodeURIComponent(this.agentName)}`
+			: "";
+	}
+
 	getUserSettings(): Promise<IEntity<Partial<IAIAssistantSettings>>> {
-		return this.fetchApi("/settings/user", "GET");
+		return this.fetchApi(`/settings/user${this.settingsQuery()}`, "GET");
 	}
 
 	saveUserSettings(
 		settings: Partial<IAIAssistantSettings>,
 	): Promise<IEntity<Partial<IAIAssistantSettings>>> {
-		return this.fetchApi("/settings/user", "PUT", settings);
+		return this.fetchApi(
+			`/settings/user${this.settingsQuery()}`,
+			"PUT",
+			settings,
+		);
 	}
 
 	getGlobalSettings(): Promise<IEntity<Partial<IAIAssistantSettings>>> {
-		return this.fetchApi("/settings/global", "GET");
+		return this.fetchApi(`/settings/global${this.settingsQuery()}`, "GET");
 	}
 
 	saveGlobalSettings(
 		settings: Partial<IAIAssistantSettings>,
 	): Promise<IEntity<Partial<IAIAssistantSettings>>> {
-		return this.fetchApi("/settings/global", "PUT", settings);
+		return this.fetchApi(
+			`/settings/global${this.settingsQuery()}`,
+			"PUT",
+			settings,
+		);
 	}
 }
