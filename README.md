@@ -125,6 +125,18 @@ const adapter = agUiAdapter({ url: agentUrl, getToken });
 // from request.history alongside each new user message.
 const adapter = agUiAdapter({ url: agentUrl, getToken, forwardHistory: true });
 
+// AG-UI with per-request extra headers (e.g. tenant id, request-scoped
+// credentials, correlation ids). Resolved fresh per `sendMessage` and
+// merged on top of the auth headers.
+const adapter = agUiAdapter({
+  url: agentUrl,
+  getToken,
+  extraHeaders: async () => ({
+    "X-Tenant-Id": getTenantId(),
+    "X-Correlation-Id": crypto.randomUUID(),
+  }),
+});
+
 // REST (non-streaming)
 const adapter = restAdapter({ url: "/api/chat", getToken });
 ```

@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [2.1.0](#210--2026-05-02) | 2026-05-02 | `agUiAdapter` gained an `extraHeaders` option for per-request custom HTTP headers (tenant ids, correlation ids, request-scoped credential bags). Non-breaking — absent option preserves prior behavior. |
 | [2.0.0](#200--2026-05-02) | 2026-05-02 | **Breaking:** React, React-DOM, Fluent UI, and AG-UI moved to `peerDependencies`; `"exports"` field locks the public API to `lib/index.js`. Pre-release hardening: gated debug logs, token-error surfacing, request-timeout option, memoized chat bubbles, LRU renderer cache, lazy-mount activity row details, copy buttons in raw logs, jest test runner. |
 | [1.8.0](#180--2026-05-02) | 2026-05-02 | Settings panel gained admin-controlled **extension visibility toggles**, **renderer reorder UI**, and **Markdown** renderer toggle. **Default renderer chain** trimmed: `dynamicUi` removed (still exported — hosts must opt in via `messageRenderers`). New **`agentName` prop** on `<AIAssistant>` is now the single source of truth for agent scoping; `AIAssistantService` constructor no longer accepts `agentName` (use `setAgentName` for non-React consumers). |
 | [1.7.0](#170--2026-05-02) | 2026-05-02 | Per-agent isolation extended to **templates** and **user/global settings** (alongside existing prompts, conversations, agent names) — scoped `AIAssistantService` embeds no longer share template lists or settings with the host app |
@@ -35,6 +36,32 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+## [2.1.0] — 2026-05-02
+
+Minor feature release. Adds a request-time hook for sending custom HTTP headers alongside each AG-UI run, so consumers can attach tenant ids, correlation ids, or per-endpoint credential bags without forking the adapter.
+
+### Added
+
+- **`extraHeaders` option on `agUiAdapter`.** `extraHeaders?: () => Promise<Record<string, string>>` is invoked once per `sendMessage` after `getToken`. The returned headers are merged on top of the auth headers; an empty value clears that specific header for the call. Use cases: tenant ids, correlation ids, A/B-flag headers, request-scoped credential payloads. Errors thrown from the resolver are swallowed (logged when `debug: true`) so a failing extra-headers resolver cannot block chat.
+
+### Example
+
+```ts
+const adapter = agUiAdapter({
+  url: "/agui",
+  getToken: () => msal.getToken(),
+  extraHeaders: async () => ({
+    "X-Tenant-Id": getTenantId(),
+    "X-Correlation-Id": crypto.randomUUID(),
+  }),
+});
+```
+
+### Migration
+
+None — the option is purely additive. Existing adapter instances continue to work unchanged.
 
 ---
 ## [2.0.0] — 2026-05-02

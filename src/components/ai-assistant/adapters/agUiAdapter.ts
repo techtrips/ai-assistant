@@ -67,6 +67,17 @@ export interface AgUiAdapterOptions {
 	 * an empty token after invoking this hook.
 	 */
 	onTokenError?: (error: unknown) => void;
+	/**
+	 * Optional resolver for additional HTTP headers to send with every
+	 * AG-UI request (e.g. tenant id, request-scoped credentials). Called
+	 * once per `sendMessage` after `getToken`. The returned headers are
+	 * merged on top of the auth headers; an empty value clears that
+	 * specific header for this call.
+	 *
+	 * Use cases: passing per-tool credential bags, propagating
+	 * correlation ids, A/B-flag headers.
+	 */
+	extraHeaders?: () => Promise<Record<string, string>>;
 }
 
 /**
@@ -143,6 +154,17 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 				token ? async () => token : undefined,
 				options.onTokenError,
 			);
+			if (options.extraHeaders) {
+				try {
+					const extra = await options.extraHeaders();
+					agent.headers = { ...agent.headers, ...extra };
+				} catch (err) {
+					if (options.debug) {
+						// eslint-disable-next-line no-console
+						console.warn("[agui] extraHeaders rejected", err);
+					}
+				}
+			}
 			agent.model = request.model;
 
 			const messages: Message[] = [];
