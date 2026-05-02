@@ -40,7 +40,11 @@ export const needsResolution = (message: IChatMessage): boolean => {
  * In-flight / resolved cache keyed by message ID.
  * Guarantees exactly one HTTP request per message regardless of
  * how many times React calls resolveMessage (StrictMode, re-renders, etc.).
- * Limited to MAX_CACHE_SIZE entries to prevent memory leaks in long sessions.
+ *
+ * LRU semantics: a cache hit re-promotes the entry to the most-recent
+ * position so frequently-viewed messages survive eviction in long
+ * sessions. `Map` preserves insertion order, so we delete + re-set on
+ * read to move an entry to the tail.
  */
 const MAX_CACHE_SIZE = 200;
 const resolveCache = new Map<
@@ -64,13 +68,18 @@ const evictOldestEntries = () => {
 
 /**
  * Returns the synchronously-available resolved result for a message,
- * or null if not yet resolved.
+ * or null if not yet resolved. Promotes the entry to the LRU tail on hit.
  */
 export const getResolvedFromCache = (
 	messageId: string,
 ): { result: RenderResult } | null => {
 	const entry = resolveCache.get(messageId);
-	if (entry?.done) return { result: entry.result };
+	if (entry?.done) {
+		// Re-insert to move to the most-recent position.
+		resolveCache.delete(messageId);
+		resolveCache.set(messageId, entry);
+		return { result: entry.result };
+	}
 	return null;
 };
 
@@ -95,7 +104,12 @@ export const resolveMessage = (
 	if (message.role !== "assistant") return Promise.resolve(undefined);
 
 	const existing = resolveCache.get(message.id);
-	if (existing) return existing.promise;
+	if (existing) {
+		// LRU promote.
+		resolveCache.delete(message.id);
+		resolveCache.set(message.id, existing);
+		return existing.promise;
+	}
 
 	const promise = resolveMessageImpl(
 		message,

@@ -31,6 +31,10 @@ export const StreamingMarkdown = ({
 			const safe = DOMPurify.sanitize(raw, {
 				USE_PROFILES: { html: true },
 				ADD_ATTR: ["target", "rel"],
+				// Relies on DOMPurify's default ALLOWED_URI_REGEXP to reject
+				// `javascript:`, `data:`, `vbscript:` schemes. Do NOT pass
+				// `ALLOW_UNKNOWN_PROTOCOLS: true` or override `ALLOWED_URI_REGEXP`
+				// without re-validating XSS surface area.
 			});
 			return safe.replace(
 				/<a\s+(?![^>]*\btarget=)/gi,

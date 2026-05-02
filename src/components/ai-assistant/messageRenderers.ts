@@ -131,7 +131,13 @@ export const templateRenderer: IMessageRenderer = {
 			const entity = await ctx.service.getTemplateById(templateId);
 			return entity.data?.content ?? undefined;
 		} catch (err) {
-			console.error("[ai-assistant] Template lookup failed:", templateId, err);
+			if (ctx.settings?.debug) {
+				console.error(
+					"[ai-assistant] Template lookup failed:",
+					templateId,
+					err,
+				);
+			}
 			return undefined;
 		}
 	},
@@ -176,7 +182,9 @@ export const dynamicUiRenderer: IMessageRenderer = {
 				if (normalized) return normalized;
 			}
 		} catch (err) {
-			console.error("[ai-assistant] Dynamic UI generation failed:", err);
+			if (ctx.settings?.debug) {
+				console.error("[ai-assistant] Dynamic UI generation failed:", err);
+			}
 		}
 		return undefined;
 	},
@@ -208,7 +216,9 @@ export const markdownRenderer: IMessageRenderer = {
 			}) as string;
 			return safeAnchors(html);
 		} catch (err) {
-			console.error("[ai-assistant] Markdown parse failed:", err);
+			if (ctx.settings?.debug) {
+				console.error("[ai-assistant] Markdown parse failed:", err);
+			}
 			return undefined;
 		}
 	},

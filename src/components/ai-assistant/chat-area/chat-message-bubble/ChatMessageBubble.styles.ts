@@ -351,7 +351,7 @@ export const useChatMessageBubbleStyles = makeStyles({
 	},
 	activityItemIconWrapActive: {
 		backgroundColor: "var(--agent-chat-brand)",
-		borderColor: "var(--agent-chat-brand)",
+		...shorthands.borderColor("var(--agent-chat-brand)"),
 		color: "#ffffff",
 		boxShadow:
 			"0 0 0 3px color-mix(in srgb, var(--agent-chat-brand) 22%, transparent)",

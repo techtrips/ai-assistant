@@ -1,6 +1,6 @@
 # @techtrips/ai-assistant
 
-[![version](https://img.shields.io/badge/version-1.8.0-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/docs/ChangeLog.md)
+[![version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/docs/ChangeLog.md)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/techtrips/ai-assistant/blob/main/LICENSE)
 
 A React component library for building agent-based AI assistants. Provides a production-ready, adapter-driven conversational UI with streaming support, an extension system, and template rendering — all built on [Fluent UI](https://react.fluentui.dev/) and the [AG-UI protocol](https://github.com/ag-ui-protocol).
@@ -18,6 +18,7 @@ A React component library for building agent-based AI assistants. Provides a pro
 - [Error Handling](#error-handling)
 - [Extensions](#extensions)
 - [Dependencies](#dependencies)
+- [Security](#security)
 - [Browser Support](#browser-support)
 - [Release Notes](#release-notes)
 - [Contributing](#contributing)
@@ -297,19 +298,52 @@ const service = new AIAssistantService({ baseUrl: apiUrl, getToken });
 
 ## Dependencies
 
-### Runtime
+### Peer dependencies
+
+These must be installed by the consumer (most apps already have them):
+
+| Package | Min version | Required? |
+|---------|-------------|-----------|
+| `react` | `^18.0.0 \|\| ^19.0.0` | **Yes** |
+| `react-dom` | `^18.0.0 \|\| ^19.0.0` | **Yes** |
+| `@fluentui/react-components` | `^9.73.6` | **Yes** — the entire UI is built on Fluent UI |
+| `@ag-ui/client` | `^0.0.48` | **Optional** — only needed if you import `agUiAdapter` |
+| `@ag-ui/core` | `^0.0.48` | **Optional** — only needed if you import `agUiAdapter` |
+
+If you're using `restAdapter` or a custom `IChatAdapter`, you can skip the AG-UI packages entirely. They're declared as `peerDependenciesMeta.optional = true` so npm/yarn won't warn.
+
+For consumers who want to be explicit, `agUiAdapter` is also reachable via the `./agui` subpath:
+
+```ts
+// Tree-shakeable from the main entry (recommended):
+import { agUiAdapter } from "@techtrips/ai-assistant";
+
+// Or, import from the subpath to make the AG-UI dependency obvious to grep:
+import { agUiAdapter } from "@techtrips/ai-assistant/agui";
+```
+
+### Bundled (runtime) dependencies
 
 | Package | Description |
 |---------|-------------|
-| `@ag-ui/client` | AG-UI protocol client for agent communication |
-| `@ag-ui/core` | AG-UI protocol core types and utilities |
-| `@fluentui/react-components` | Microsoft Fluent UI React component library |
 | `adaptivecards` | Adaptive Cards SDK — lazy-loaded on first use |
-| `dompurify` | HTML sanitizer — used by `IsolatedHtmlRenderer` |
+| `dompurify` | HTML sanitizer — used by `StreamingMarkdown` and `IsolatedHtmlRenderer` |
 | `marked` | GitHub-flavoured Markdown parser — used by `markdownRenderer` |
-| `react` | React library |
-| `react-dom` | React DOM renderer |
-| `react-router` | Declarative routing for React |
+
+---
+
+## Security
+
+The library renders agent-supplied content (Markdown, HTML payloads, Adaptive Cards). The default rendering pipeline is sanitized; the notes below describe the assumptions and the surface area to review when overriding defaults.
+
+- **Markdown rendering** (`StreamingMarkdown`, `markdownRenderer`) — Output of `marked` is passed through DOMPurify with `USE_PROFILES: { html: true }`. The default `ALLOWED_URI_REGEXP` rejects `javascript:`, `data:`, and `vbscript:` schemes; do not override `ALLOWED_URI_REGEXP` or pass `ALLOW_UNKNOWN_PROTOCOLS: true` without re-validating the XSS surface.
+- **HTML payloads** (`IsolatedHtmlRenderer`) — Renders into a closed shadow root so host page styles don't leak in and the payload's CSS doesn't escape. Combine with a strict CSP (`script-src 'self'`, `frame-ancestors 'none'`) for defence-in-depth.
+- **Adaptive Cards** — Rendered via the `adaptivecards` SDK with the bundled host config. Action handlers (`Action.OpenUrl`, `Action.Submit`) are invoked with the payload values directly; if your agent emits user-supplied content into actions, validate it server-side before display.
+- **Dynamic UI renderer** — Generates HTML via the LLM. Off by default in v2.0+ (`defaultMessageRenderers` no longer includes it). Opt in only for trusted agents; the generated HTML is rendered through the same shadow-root isolation as static HTML payloads but the prompt itself is the only safeguard against injection.
+- **Tokens** — Resolved per-request via the `getToken()` callback. The library does not persist tokens; consumers are responsible for storage (prefer in-memory or HttpOnly cookies over `localStorage`/`sessionStorage`).
+- **Token errors** — Both `agUiAdapter` and `restAdapter` accept an `onTokenError(error)` hook. Wire it to your auth flow so silent token failures don't degrade to confusing 401 errors downstream.
+- **Debug logs** — Off by default. Set `IAIAssistantSettings.debug = true` to enable internal `console.error` from renderers/adapters during development. Do not enable in production builds.
+- **Long chat lists** — The bundled `ChatArea` lazy-mounts message bubbles but does not virtualize. For threads with several hundred messages, wrap the assistant in a paginated container or supply a virtualized custom list via the `messages` slot in a future release.
 
 ---
 

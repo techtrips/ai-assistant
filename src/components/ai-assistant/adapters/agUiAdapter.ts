@@ -141,6 +141,7 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 			agent.threadId = request.threadId;
 			agent.headers = await buildAuthHeaders(
 				token ? async () => token : undefined,
+				options.onTokenError,
 			);
 			agent.model = request.model;
 
@@ -207,12 +208,22 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 				},
 			});
 
+			// Abort relay: a single AbortController owned by this run, with the
+			// consumer's signal forwarded via `addEventListener('abort', ..., { once: true, signal })`.
+			// Passing the local controller's signal as the listener-removal
+			// signal means the listener is GC-eligible the instant the run
+			// settles, even if the consumer never aborts.
 			const abortController = new AbortController();
-			const onConsumerAbort = () => abortController.abort();
 			if (request.abortSignal) {
-				request.abortSignal.addEventListener("abort", onConsumerAbort, {
-					once: true,
-				});
+				if (request.abortSignal.aborted) {
+					abortController.abort();
+				} else {
+					request.abortSignal.addEventListener(
+						"abort",
+						() => abortController.abort(),
+						{ once: true, signal: abortController.signal },
+					);
+				}
 			}
 
 			const buildData = (): IChatMessageData | undefined => {
@@ -265,7 +276,6 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 					}
 				})
 				.finally(() => {
-					request.abortSignal?.removeEventListener("abort", onConsumerAbort);
 					const data = buildData();
 					if (streamedText || data) {
 						push({

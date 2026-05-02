@@ -41,6 +41,13 @@ interface RestAdapterOptions {
 	mapError?: (ctx: RestErrorContext) => RestErrorMapping;
 	/** Optional extra headers to merge into the request. */
 	headers?: Record<string, string>;
+	/**
+	 * Invoked when {@link RestAdapterOptions.getToken} rejects. Receives the
+	 * original error so the host can surface it (toast, telemetry, re-auth
+	 * flow). The adapter still proceeds with no `Authorization` header after
+	 * invoking this hook.
+	 */
+	onTokenError?: (error: unknown) => void;
 }
 
 const defaultExtractText = (json: unknown): string => {
@@ -105,7 +112,7 @@ export const restAdapter = (options: RestAdapterOptions): IChatAdapter => {
 		): AsyncGenerator<ChatEvent> {
 			const headers: Record<string, string> = {
 				"Content-Type": "application/json",
-				...(await buildAuthHeaders(options.getToken)),
+				...(await buildAuthHeaders(options.getToken, options.onTokenError)),
 				...(options.headers ?? {}),
 			};
 

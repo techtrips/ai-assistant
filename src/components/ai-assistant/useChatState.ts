@@ -89,6 +89,13 @@ export const useChatState = (
 	onError?: (event: Extract<ChatEvent, { type: "error" }>) => void,
 	options?: {
 		captureActivityDetails?: boolean;
+		/**
+		 * Maximum time (ms) the adapter is allowed to stay silent before the
+		 * stream is auto-aborted with a timeout error. Resets on every event.
+		 * Defaults to undefined (no timeout). Recommended: 60_000 for
+		 * production deployments behind unreliable networks.
+		 */
+		requestTimeoutMs?: number;
 	},
 ): IUseChatStateResult => {
 	const [messages, setMessages] = useState<IChatMessage[]>([]);
@@ -113,6 +120,8 @@ export const useChatState = (
 		options?.captureActivityDetails !== false,
 	);
 	captureDetailsRef.current = options?.captureActivityDetails !== false;
+	const timeoutMsRef = useRef<number | undefined>(options?.requestTimeoutMs);
+	timeoutMsRef.current = options?.requestTimeoutMs;
 
 	// Stabilize external dependencies so `sendMessage` remains referentially
 	// stable across re-renders. Without this, every change to `adapter`,
@@ -227,6 +236,27 @@ export const useChatState = (
 			const ac = new AbortController();
 			abortRef.current = ac;
 
+			// Inactivity timeout. Resets on every event so a healthy stream
+			// never trips it; only fires when the adapter goes silent for
+			// `requestTimeoutMs` (e.g. dropped SSE connection).
+			let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
+			let timedOut = false;
+			const armTimeout = () => {
+				const ms = timeoutMsRef.current;
+				if (!ms || ms <= 0) return;
+				if (inactivityTimer) clearTimeout(inactivityTimer);
+				inactivityTimer = setTimeout(() => {
+					timedOut = true;
+					ac.abort();
+				}, ms);
+			};
+			const clearTimeoutTimer = () => {
+				if (inactivityTimer) {
+					clearTimeout(inactivityTimer);
+					inactivityTimer = null;
+				}
+			};
+
 			const messageId = nextId();
 			// Snapshot the threadId at send-time so a concurrent newChat()
 			// can't reroute an in-flight stream to a different thread.
@@ -250,8 +280,10 @@ export const useChatState = (
 						captureActivityDetails: captureDetailsRef.current,
 					});
 
+					armTimeout();
 					for await (const event of stream) {
 						if (ac.signal.aborted) break;
+						armTimeout();
 
 						switch (event.type) {
 							case "text-delta":
@@ -305,6 +337,20 @@ export const useChatState = (
 					}
 				} catch (err: unknown) {
 					if (err instanceof Error && err.name === "AbortError") {
+						if (timedOut) {
+							hadError = true;
+							const msg = `Request timed out after ${timeoutMsRef.current}ms of inactivity`;
+							setError(msg);
+							setMessages((prev) => [
+								...prev,
+								{
+									id: nextId(),
+									role: "error",
+									content: msg,
+									timestamp: new Date().toISOString(),
+								},
+							]);
+						}
 						// User cancelled — do nothing
 					} else {
 						hadError = true;
@@ -345,6 +391,7 @@ export const useChatState = (
 					flushHandleRef.current();
 					flushHandleRef.current = null;
 				}
+				clearTimeoutTimer();
 				pendingTextRef.current = null;
 				pendingActivitiesRef.current = null;
 				isStreamingRef.current = false;

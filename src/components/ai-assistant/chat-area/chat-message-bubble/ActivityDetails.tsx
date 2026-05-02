@@ -105,15 +105,16 @@ export const ActivityDetails = ({
 	const startMs = activities[0]
 		? new Date(activities[0].timestamp).getTime()
 		: 0;
-	// Tick every 500ms while live so the active row's elapsed time keeps
-	// growing even when the agent is silent (e.g. waiting on the model to
-	// start composing the reply).
+	// Tick every 500ms while live AND expanded so the active row's elapsed
+	// time keeps growing. The inline header (`inline=true`) is only the
+	// summary line and never shows per-row elapsed values — skip the
+	// interval there to avoid CPU usage on every assistant message bubble.
 	const [nowMs, setNowMs] = useState<number>(() => Date.now());
 	useEffect(() => {
-		if (!isLive) return;
+		if (!isLive || inline) return;
 		const id = window.setInterval(() => setNowMs(Date.now()), 500);
 		return () => window.clearInterval(id);
-	}, [isLive]);
+	}, [isLive, inline]);
 
 	// Snapshot the elapsed value of each row at the moment it stopped
 	// being the active row, so the displayed time matches what the user

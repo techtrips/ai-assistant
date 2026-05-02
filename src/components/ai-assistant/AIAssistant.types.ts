@@ -78,6 +78,11 @@ export interface IAIAssistantSettings {
 	enabledExtensions?: Record<string, boolean>;
 	/** Show agent activity (developer mode). User-level setting. */
 	showAgentActivity: boolean;
+	/**
+	 * When true, renderers and adapters log internal errors to `console.error`.
+	 * Off by default to keep consumer production consoles clean. User-level setting.
+	 */
+	debug?: boolean;
 }
 
 /** Default enabled state for each built-in renderer type. */

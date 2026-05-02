@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [2.0.0](#200--2026-05-02) | 2026-05-02 | **Breaking:** React, React-DOM, Fluent UI, and AG-UI moved to `peerDependencies`; `"exports"` field locks the public API to `lib/index.js`. Pre-release hardening: gated debug logs, token-error surfacing, request-timeout option, memoized chat bubbles, LRU renderer cache, lazy-mount activity row details, copy buttons in raw logs, jest test runner. |
 | [1.8.0](#180--2026-05-02) | 2026-05-02 | Settings panel gained admin-controlled **extension visibility toggles**, **renderer reorder UI**, and **Markdown** renderer toggle. **Default renderer chain** trimmed: `dynamicUi` removed (still exported — hosts must opt in via `messageRenderers`). New **`agentName` prop** on `<AIAssistant>` is now the single source of truth for agent scoping; `AIAssistantService` constructor no longer accepts `agentName` (use `setAgentName` for non-React consumers). |
 | [1.7.0](#170--2026-05-02) | 2026-05-02 | Per-agent isolation extended to **templates** and **user/global settings** (alongside existing prompts, conversations, agent names) — scoped `AIAssistantService` embeds no longer share template lists or settings with the host app |
 | [1.6.0](#160--2026-05-02) | 2026-05-02 | Logs panel polish: turn dropdown (server-driven via new `getThreadTurns`), infinite-scroll pagination, collapsible rows, hide-duplicates toggle, content-derived friendly thread names in history & logs |
@@ -34,6 +35,60 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+## [2.0.0] — 2026-05-02
+
+Pre-release hardening pass: dependency hygiene, security gates, performance tuning, and a test runner. Mostly source-compatible — the breaking changes are in the package shape (peer dependencies + locked exports) and one removed empty re-export, neither of which should affect consumers who already declare React themselves.
+
+### Breaking changes
+
+- **`react`, `react-dom`, `@fluentui/react-components`, `@ag-ui/client`, `@ag-ui/core` are now `peerDependencies`.** Consumers must add them to their own `package.json` (most already do; if not, run `npm install react react-dom @fluentui/react-components @ag-ui/client @ag-ui/core`). Eliminates duplicate-React errors and Fluent design-token mismatches.
+- **`react-router` removed from dependencies.** It was only used by the demo app, never the published library.
+- **`"exports"` field added.** Deep imports like `@techtrips/ai-assistant/src/...` or `@techtrips/ai-assistant/lib/components/...` no longer resolve. Use the package root: `import { AIAssistant } from "@techtrips/ai-assistant";`.
+- **Empty barrel re-exports removed from `src/index.ts`.** `src/utilities/index.ts`, `src/models/index.ts`, `src/resources/index.ts`, `src/hooks/index.ts` were `export {}` and contributed nothing to the public surface; the lines re-exporting them have been dropped.
+
+### Added
+
+- **`debug` settings flag.** When `IAIAssistantSettings.debug` is true, renderer / adapter internal errors are logged to `console.error`. Off by default to keep consumer production consoles clean.
+- **`onTokenError` adapter option.** Both `agUiAdapter` and `restAdapter` now accept `onTokenError(error)` so consumers can react (re-auth flow, telemetry) when `getToken()` rejects. Previously the rejection was silently swallowed.
+- **`requestTimeoutMs` option on `useChatState`.** Auto-aborts a stream after N ms of inactivity (resets on every event). Off by default. Surfaces a typed error message in the chat thread.
+- **Jest test runner.** `npm test`, `npm run test:watch`, `npm run test:coverage`. Initial test coverage on the pure helpers in `agUiAdapter.helpers.ts` and `http.ts`.
+- **Copy button on raw-log entries.** Mirrors the existing copy button in the per-message activity log.
+
+### Changed
+
+- **Chat bubble re-renders are memoized.** `ChatMessageBubble` is now wrapped in `React.memo` with a custom equality predicate (compares `id`/`role`/`content`/`data` reference). Streaming a long reply no longer re-resolves every existing bubble.
+- **Renderer cache is now LRU.** `getResolvedFromCache` and `resolveMessage` re-promote entries on hit so frequently-viewed messages survive eviction in long sessions.
+- **Activity-row details mount lazily.** Per-row `<details>` payloads (often several KB of JSON) are only inserted into the DOM on first expand, keeping initial render light.
+- **Activity tick interval gated on inline+live.** The 500 ms timer that drove the elapsed-time display now only runs when the activity panel is expanded (was previously running on every assistant bubble's inline summary).
+- **`console.error` calls in `messageRenderers.ts` gated on `settings.debug`.** Failed template lookups, dynamic-UI generation errors, and markdown parse errors no longer pollute the consumer's console by default.
+
+### Fixed
+
+- **Adapter abort listener leak.** `agUiAdapter` now uses the local AbortController's signal as the listener-removal signal on the consumer's abort signal, so the listener is GC-eligible the instant the run settles.
+- **DOMPurify URI assumption documented.** The `StreamingMarkdown` component now carries an inline comment locking in the DOMPurify default `ALLOWED_URI_REGEXP` (rejects `javascript:` / `data:` / `vbscript:`). Future refactors must not pass `ALLOW_UNKNOWN_PROTOCOLS: true` without a re-review.
+
+### Migration
+
+```diff
+// 1. Add peer dependencies (skip any you already have):
+npm install react react-dom @fluentui/react-components @ag-ui/client @ag-ui/core
+
+// 2. Replace any deep imports with the package root:
+- import { agUiAdapter } from "@techtrips/ai-assistant/lib/components/ai-assistant/adapters";
++ import { agUiAdapter } from "@techtrips/ai-assistant";
+
+// 3. (Optional) Wire token-error surfacing:
+const adapter = agUiAdapter({
+  url: "/agui",
+  getToken: () => msal.getToken(),
++ onTokenError: (err) => toast.error(`Auth failed: ${String(err)}`),
+});
+
+// 4. (Optional) Surface debug logs in dev only:
+const [settings, setSettings] = useState({ debug: import.meta.env.DEV });
+```
 
 ---
 ## [1.8.0] — 2026-05-02

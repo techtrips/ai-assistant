@@ -1,5 +1,6 @@
 import { mergeClasses } from "@fluentui/react-components";
 import { SparkleRegular } from "@fluentui/react-icons";
+import { memo } from "react";
 import { useAIAssistantContext } from "../../AIAssistantContext";
 import type { IChatMessage } from "../../AIAssistant.types";
 import { ActivityDetails } from "./ActivityDetails";
@@ -10,7 +11,7 @@ import { CopyMessageButton } from "./CopyMessageButton";
 import { IsolatedHtmlRenderer } from "./IsolatedHtmlRenderer";
 import { useResolveMessage } from "./useResolveMessage";
 
-export const ChatMessageBubble = ({ message }: IChatMessageBubbleProps) => {
+const ChatMessageBubbleImpl = ({ message }: IChatMessageBubbleProps) => {
 	const classes = useChatMessageBubbleStyles();
 	const { service, theme, settings, messageRenderers } =
 		useAIAssistantContext();
@@ -128,3 +129,29 @@ const RawDataFallback = ({ message }: { message: IChatMessage }) => {
 		</div>
 	);
 };
+
+/**
+ * Equality predicate for `React.memo`. Re-render only when the message
+ * identity, mutable streaming fields (`content`), or the structured data
+ * payload reference change. The chat list re-renders on every parent
+ * state change (active stream tick, settings update); without this guard
+ * every existing bubble would re-resolve and re-render.
+ */
+const areMessagePropsEqual = (
+	prev: IChatMessageBubbleProps,
+	next: IChatMessageBubbleProps,
+): boolean => {
+	const a = prev.message;
+	const b = next.message;
+	return (
+		a.id === b.id &&
+		a.role === b.role &&
+		a.content === b.content &&
+		a.data === b.data
+	);
+};
+
+export const ChatMessageBubble = memo(
+	ChatMessageBubbleImpl,
+	areMessagePropsEqual,
+);

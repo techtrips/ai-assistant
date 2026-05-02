@@ -9,16 +9,23 @@ import { ChatErrorCode, type ChatErrorCodeLike } from "./types";
 export type GetTokenFn = () => Promise<string>;
 
 /**
- * Resolve a Bearer token to an `Authorization` header. Failures are
- * swallowed so that callers can still attempt anonymous requests
- * (the server will respond with 401 if auth is actually required).
+ * Resolve a Bearer token to an `Authorization` header. Failures invoke
+ * the optional `onError` hook so consumers can react (re-auth, telemetry)
+ * and then return an empty header object so anonymous-allowed endpoints
+ * can still proceed (the server will respond with 401 otherwise).
  */
 export const buildAuthHeaders = async (
 	getToken: GetTokenFn | undefined,
+	onError?: (error: unknown) => void,
 ): Promise<Record<string, string>> => {
 	if (!getToken) return {};
-	const token = await getToken().catch(() => "");
-	return token ? { Authorization: `Bearer ${token}` } : {};
+	try {
+		const token = await getToken();
+		return token ? { Authorization: `Bearer ${token}` } : {};
+	} catch (err) {
+		onError?.(err);
+		return {};
+	}
 };
 
 /**
