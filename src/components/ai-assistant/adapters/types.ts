@@ -82,6 +82,11 @@ export type ChatEvent =
 			key?: string;
 			/** When `true`, treated as an explicit clear regardless of `label`. */
 			done?: boolean;
+			/**
+			 * Optional structured detail (args / result preview) to surface
+			 * in the activity timeline when the user expands the row.
+			 */
+			detail?: string;
 	  };
 
 /**
@@ -108,6 +113,12 @@ export interface ISendMessageRequest {
 	 * don't need to re-cap.
 	 */
 	history?: ReadonlyArray<IChatHistoryEntry>;
+	/**
+	 * When false, adapters should skip building rich per-event detail
+	 * payloads (tool args, tool results, reasoning buffers, etc.) since
+	 * the host UI is not surfacing them. Defaults to true.
+	 */
+	captureActivityDetails?: boolean;
 }
 
 export interface IChatAdapter {

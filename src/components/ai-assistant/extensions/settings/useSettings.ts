@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAIAssistantContext } from "../../AIAssistantContext";
 import type { IAIAssistantSettings } from "../../AIAssistant.types";
 import {
@@ -12,7 +12,8 @@ export const useSettings = () => {
 	const {
 		service,
 		permissions,
-		agentNames: contextAgentNames,
+		configuredExtensions,
+		configuredRendererTypes,
 		updateSettings,
 	} = useAIAssistantContext();
 	const [userSettings, setUserSettings] =
@@ -20,7 +21,6 @@ export const useSettings = () => {
 	const [globalSettings, setGlobalSettings] = useState<
 		Partial<IAIAssistantSettings>
 	>({});
-	const [allAgentNames, setAllAgentNames] = useState<string[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
@@ -42,13 +42,11 @@ export const useSettings = () => {
 			isAdmin
 				? service.getGlobalSettings().catch(() => ({ data: undefined }))
 				: Promise.resolve({ data: {} }),
-			service.getAgentNames().catch(() => ({ data: undefined })),
-		]).then(([userResult, globalResult, agentsResult]) => {
+		]).then(([userResult, globalResult]) => {
 			if (ignore) return;
 			if (userResult.data)
 				setUserSettings({ ...DEFAULT_SETTINGS, ...userResult.data });
 			if (globalResult.data) setGlobalSettings(globalResult.data);
-			if (agentsResult.data) setAllAgentNames(agentsResult.data);
 			setLoading(false);
 		});
 
@@ -56,10 +54,6 @@ export const useSettings = () => {
 			ignore = true;
 		};
 	}, [service, isAdmin]);
-
-	// Use context agent names as fallback if service.getAgentNames() didn't return any
-	const effectiveAgentNames =
-		allAgentNames.length > 0 ? allAgentNames : contextAgentNames;
 
 	const debouncedSaveGlobal = useCallback(
 		(next: Partial<IAIAssistantSettings>) => {
@@ -110,9 +104,11 @@ export const useSettings = () => {
 		[userSettings, globalSettings, updateSettings, debouncedSaveGlobal],
 	);
 
-	const setVisibleAgents = useCallback(
-		(agents: string[]) => {
-			const next = { ...globalSettings, visibleAgents: agents };
+	const setExtensionEnabled = useCallback(
+		(key: string, enabled: boolean) => {
+			const current = globalSettings.enabledExtensions ?? {};
+			const nextMap = { ...current, [key]: enabled };
+			const next = { ...globalSettings, enabledExtensions: nextMap };
 			setGlobalSettings(next);
 			updateSettings(userSettings, next);
 			debouncedSaveGlobal(next);
@@ -120,16 +116,44 @@ export const useSettings = () => {
 		[userSettings, globalSettings, updateSettings, debouncedSaveGlobal],
 	);
 
+	const setRendererOrder = useCallback(
+		(order: string[]) => {
+			const next = { ...globalSettings, rendererOrder: order };
+			setGlobalSettings(next);
+			updateSettings(userSettings, next);
+			debouncedSaveGlobal(next);
+		},
+		[userSettings, globalSettings, updateSettings, debouncedSaveGlobal],
+	);
+
+	// Renderer types to show in the order UI — union of types from the active
+	// chain plus any saved order entries that no longer match (so admins can
+	// see/clean stale entries).
+	const orderedRendererTypes = useMemo(() => {
+		const saved = globalSettings.rendererOrder ?? [];
+		const available = new Set(configuredRendererTypes);
+		const result: string[] = [];
+		for (const t of saved) {
+			if (available.has(t) && !result.includes(t)) result.push(t);
+		}
+		for (const t of configuredRendererTypes) {
+			if (!result.includes(t)) result.push(t);
+		}
+		return result;
+	}, [configuredRendererTypes, globalSettings.rendererOrder]);
+
 	return {
 		userSettings,
 		globalSettings,
 		loading,
 		saving,
 		isAdmin,
-		allAgentNames: effectiveAgentNames,
+		configuredExtensions,
+		orderedRendererTypes,
 		saveUserSetting,
 		saveGlobalSetting,
 		setRendererEnabled,
-		setVisibleAgents,
+		setExtensionEnabled,
+		setRendererOrder,
 	};
 };

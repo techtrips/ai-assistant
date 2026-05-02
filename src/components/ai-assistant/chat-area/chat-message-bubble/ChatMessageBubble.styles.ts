@@ -32,10 +32,15 @@ export const useChatMessageBubbleStyles = makeStyles({
 	},
 	assistantPreamble: {
 		display: "flex",
-		alignItems: "center",
+		alignItems: "flex-start",
 		...shorthands.gap("8px"),
 		color: "var(--agent-chat-muted)",
 		fontSize: tokens.fontSizeBase100,
+	},
+	assistantPreambleTime: {
+		// Vertically center with the 32px avatar (independent of details height).
+		alignSelf: "flex-start",
+		lineHeight: "32px",
 	},
 	avatar: {
 		width: "32px",
@@ -71,6 +76,61 @@ export const useChatMessageBubbleStyles = makeStyles({
 		overflowWrap: "break-word",
 		wordBreak: "break-word",
 		boxSizing: "border-box",
+	},
+	streamingMarkdown: {
+		"& > *:first-child": { marginTop: 0 },
+		"& > *:last-child": { marginBottom: 0 },
+		"& p": { marginTop: "0", marginBottom: "8px" },
+		"& ul, & ol": {
+			marginTop: "4px",
+			marginBottom: "8px",
+			paddingLeft: "20px",
+		},
+		"& li": { marginBottom: "2px" },
+		"& code": {
+			fontFamily: tokens.fontFamilyMonospace,
+			fontSize: "0.92em",
+			backgroundColor: "var(--agent-chat-card)",
+			...shorthands.padding("1px", "4px"),
+			...shorthands.borderRadius("3px"),
+		},
+		"& pre": {
+			backgroundColor: "var(--agent-chat-card)",
+			...shorthands.padding("8px", "10px"),
+			...shorthands.borderRadius("6px"),
+			overflowX: "auto",
+		},
+		"& pre code": {
+			backgroundColor: "transparent",
+			...shorthands.padding(0),
+		},
+		"& a": { color: "var(--agent-chat-brand)" },
+		"& h1, & h2, & h3, & h4": {
+			marginTop: "8px",
+			marginBottom: "4px",
+			fontWeight: 600,
+		},
+		"& table": { borderCollapse: "collapse", width: "100%" },
+		"& th, & td": {
+			...shorthands.padding("4px", "8px"),
+			...shorthands.borderBottom("1px", "solid", "var(--agent-chat-border)"),
+			textAlign: "left",
+		},
+	},
+	streamingCaret: {
+		display: "inline-block",
+		width: "2px",
+		height: "1em",
+		marginLeft: "2px",
+		verticalAlign: "text-bottom",
+		backgroundColor: "var(--agent-chat-brand)",
+		animationName: {
+			"0%, 50%": { opacity: 1 },
+			"50.01%, 100%": { opacity: 0 },
+		},
+		animationDuration: "1s",
+		animationIterationCount: "infinite",
+		animationTimingFunction: "steps(1, end)",
 	},
 	errorText: {
 		color: "var(--colorPaletteRedForeground1, #c4314b)",
@@ -168,5 +228,214 @@ export const useChatMessageBubbleStyles = makeStyles({
 	copyButtonAssistant: {
 		marginLeft: "40px",
 		marginTop: "4px",
+	},
+	activityDetails: {
+		marginLeft: "40px",
+		marginBottom: "6px",
+		fontSize: "11px",
+		color: "var(--agent-chat-muted)",
+	},
+	activityDetailsInline: {
+		marginLeft: 0,
+		marginBottom: 0,
+		// Visually center the summary chip with the 32px avatar (chip ≈ 24px).
+		marginTop: "4px",
+	},
+	activitySummary: {
+		cursor: "pointer",
+		listStyle: "none",
+		display: "inline-flex",
+		alignItems: "center",
+		...shorthands.gap("6px"),
+		...shorthands.padding("2px", "8px"),
+		...shorthands.borderRadius("10px"),
+		...shorthands.border("1px", "solid", "var(--agent-chat-border)"),
+		backgroundColor: "var(--agent-chat-surface)",
+		userSelect: "none",
+		":hover": {
+			backgroundColor: "var(--agent-chat-card)",
+		},
+		"::-webkit-details-marker": {
+			display: "none",
+		},
+	},
+	activitySummaryLive: {
+		color: "var(--agent-chat-fg)",
+	},
+	activitySummaryText: {
+		overflow: "hidden",
+		textOverflow: "ellipsis",
+		whiteSpace: "nowrap",
+		maxWidth: "320px",
+		"@media (max-width: 480px)": {
+			maxWidth: "180px",
+		},
+	},
+	activityCount: {
+		opacity: 0.7,
+		fontVariantNumeric: "tabular-nums",
+	},
+	activityDoneIcon: {
+		fontSize: "16px",
+		color: "var(--agent-chat-brand)",
+		flexShrink: 0,
+	},
+	activitySpinner: {
+		width: "10px",
+		height: "10px",
+		...shorthands.borderRadius("50%"),
+		...shorthands.border("2px", "solid", "var(--agent-chat-border)"),
+		borderTopColor: "var(--agent-chat-brand)",
+		animationName: {
+			from: { transform: "rotate(0deg)" },
+			to: { transform: "rotate(360deg)" },
+		},
+		animationDuration: "0.8s",
+		animationIterationCount: "infinite",
+		animationTimingFunction: "linear",
+		flexShrink: 0,
+	},
+	activityList: {
+		display: "flex",
+		flexDirection: "column",
+		...shorthands.gap("2px"),
+		marginTop: "8px",
+		paddingLeft: "0",
+		position: "relative",
+		// Vertical timeline rail behind the icon column.
+		// Icon column width = 22px → center = 11px from list-left.
+		"::before": {
+			content: '""',
+			position: "absolute",
+			left: "11px",
+			top: "12px",
+			bottom: "12px",
+			width: "1px",
+			backgroundColor: "var(--agent-chat-border)",
+		},
+	},
+	activityItem: {
+		display: "grid",
+		gridTemplateColumns: "22px minmax(0, 1fr) auto",
+		alignItems: "center",
+		columnGap: "10px",
+		fontSize: "12px",
+		lineHeight: "18px",
+		...shorthands.padding("3px", "4px", "3px", "0"),
+		...shorthands.borderRadius("6px"),
+		animationName: {
+			from: { opacity: 0, transform: "translateY(-2px)" },
+			to: { opacity: 1, transform: "translateY(0)" },
+		},
+		animationDuration: "180ms",
+		animationTimingFunction: "ease-out",
+		":hover": {
+			backgroundColor: "var(--agent-chat-card)",
+		},
+	},
+	activityItemRunning: {
+		color: "var(--agent-chat-fg)",
+	},
+	activityItemIconWrap: {
+		width: "22px",
+		height: "22px",
+		display: "inline-flex",
+		alignItems: "center",
+		justifyContent: "center",
+		...shorthands.borderRadius("50%"),
+		backgroundColor: "var(--agent-chat-surface)",
+		...shorthands.border("1px", "solid", "var(--agent-chat-border)"),
+		color: "var(--agent-chat-muted)",
+		flexShrink: 0,
+		zIndex: 1,
+	},
+	activityItemIconWrapActive: {
+		backgroundColor: "var(--agent-chat-brand)",
+		borderColor: "var(--agent-chat-brand)",
+		color: "#ffffff",
+		boxShadow:
+			"0 0 0 3px color-mix(in srgb, var(--agent-chat-brand) 22%, transparent)",
+	},
+	activityItemIcon: {
+		fontSize: "12px",
+	},
+	activityItemTime: {
+		fontFamily: tokens.fontFamilyMonospace,
+		color: tokens.colorNeutralForeground2,
+		fontVariantNumeric: "tabular-nums",
+		fontWeight: 500,
+		flexShrink: 0,
+		fontSize: "11px",
+		"@media (max-width: 480px)": {
+			display: "none",
+		},
+	},
+	activityItemLabel: {
+		overflowWrap: "anywhere",
+		minWidth: 0,
+	},
+	activityItemWrap: {
+		"& > summary": {
+			listStyle: "none",
+			cursor: "pointer",
+		},
+		"& > summary::-webkit-details-marker": {
+			display: "none",
+		},
+	},
+	activityItemWrapStatic: {
+		"& > summary": {
+			cursor: "default",
+		},
+	},
+	activityItemInteractive: {
+		":hover": {
+			backgroundColor: "var(--agent-chat-card)",
+		},
+	},
+	activityItemDetailWrap: {
+		position: "relative",
+		marginLeft: "32px",
+		marginRight: "4px",
+		marginTop: "6px",
+		marginBottom: "6px",
+	},
+	activityItemCopyButton: {
+		position: "absolute",
+		top: "4px",
+		right: "14px",
+		minWidth: "26px",
+		width: "26px",
+		height: "26px",
+		...shorthands.padding(0),
+		zIndex: 2,
+		backgroundColor: tokens.colorNeutralBackground1,
+		":hover": {
+			backgroundColor: tokens.colorNeutralBackground1Hover,
+		},
+		"& .fui-Button__icon": {
+			fontSize: "16px",
+			width: "16px",
+			height: "16px",
+		},
+	},
+	activityItemDetail: {
+		marginTop: 0,
+		marginBottom: 0,
+		fontFamily: tokens.fontFamilyMonospace,
+		fontSize: "11px",
+		lineHeight: "16px",
+		color: tokens.colorNeutralForeground2,
+		backgroundColor: tokens.colorNeutralBackground3,
+		...shorthands.border("1px", "solid", "var(--agent-chat-border)"),
+		...shorthands.borderRadius("6px"),
+		...shorthands.padding("8px", "48px", "8px", "10px"),
+		whiteSpace: "pre-wrap",
+		overflowWrap: "anywhere",
+		wordBreak: "break-word",
+		maxHeight: "240px",
+		overflowY: "auto",
+		boxSizing: "border-box",
+		maxWidth: "100%",
 	},
 });

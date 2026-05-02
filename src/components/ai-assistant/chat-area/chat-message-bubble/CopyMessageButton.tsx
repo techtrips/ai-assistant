@@ -1,4 +1,4 @@
-import { Button, Tooltip } from "@fluentui/react-components";
+import { Button, Tooltip, mergeClasses } from "@fluentui/react-components";
 import { Checkmark16Regular, Copy16Regular } from "@fluentui/react-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { IChatMessage } from "../../AIAssistant.types";
@@ -55,7 +55,7 @@ export const CopyMessageButton = ({
 				size="small"
 				icon={copied ? <Checkmark16Regular /> : <Copy16Regular />}
 				onClick={handleCopy}
-				className={`agent-chat-copy ${className ?? ""}`}
+				className={mergeClasses("agent-chat-copy", className)}
 				aria-label="Copy message"
 			/>
 		</Tooltip>

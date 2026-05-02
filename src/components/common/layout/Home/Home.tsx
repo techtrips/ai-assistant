@@ -21,7 +21,7 @@ export const Home = () => {
 	const classes = useStyles();
 	const [isAssistantVisible, setIsAssistantVisible] = useState(true);
 
-	const { loginError, getAccessToken } = useAuth({
+	const { loginError, ready, getAccessToken } = useAuth({
 		apiBaseUrl,
 		email: appConfig?.auth?.email,
 		password: appConfig?.auth?.password,
@@ -100,12 +100,15 @@ export const Home = () => {
 								!isAssistantVisible && classes.assistantContainerHidden,
 							)}
 						>
-							<AIAssistant
-								chatAdapter={adapter}
-								permissions={permissions}
-								service={assistantService}
-								onClose={handleToggleAssistant}
-							/>
+							{ready && (
+								<AIAssistant
+									agentName="TechTrips Agent"
+									chatAdapter={adapter}
+									permissions={permissions}
+									service={assistantService}
+									onClose={handleToggleAssistant}
+								/>
+							)}
 						</div>
 					</>
 				)}

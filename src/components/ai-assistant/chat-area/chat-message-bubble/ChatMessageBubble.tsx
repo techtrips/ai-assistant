@@ -1,6 +1,8 @@
+import { mergeClasses } from "@fluentui/react-components";
 import { SparkleRegular } from "@fluentui/react-icons";
 import { useAIAssistantContext } from "../../AIAssistantContext";
 import type { IChatMessage } from "../../AIAssistant.types";
+import { ActivityDetails } from "./ActivityDetails";
 import { useChatMessageBubbleStyles } from "./ChatMessageBubble.styles";
 import type { IChatMessageBubbleProps } from "./ChatMessageBubble.types";
 import { formatTime } from "./ChatMessageBubble.utils";
@@ -22,14 +24,14 @@ export const ChatMessageBubble = ({ message }: IChatMessageBubbleProps) => {
 
 	if (message.role === "user") {
 		return (
-			<div className={`${classes.userBlock} ${classes.userHover}`}>
+			<div className={mergeClasses(classes.userBlock, classes.userHover)}>
 				<span className={classes.userTime}>
 					{formatTime(message.timestamp)}
 				</span>
 				<div className={classes.userBubble}>{message.content}</div>
 				<CopyMessageButton
 					message={message}
-					className={`${classes.copyButton} ${classes.copyButtonUser}`}
+					className={mergeClasses(classes.copyButton, classes.copyButtonUser)}
 				/>
 			</div>
 		);
@@ -53,22 +55,42 @@ export const ChatMessageBubble = ({ message }: IChatMessageBubbleProps) => {
 	const isHtml = typeof resolved === "string";
 
 	return (
-		<div className={`${classes.assistantBlock} ${classes.assistantHover}`}>
+		<div
+			className={mergeClasses(classes.assistantBlock, classes.assistantHover)}
+		>
 			<div className={classes.assistantPreamble}>
 				<span className={classes.avatar}>
 					<SparkleRegular fontSize={18} />
 				</span>
-				<span>{formatTime(message.timestamp)}</span>
+				<span className={classes.assistantPreambleTime}>
+					{formatTime(message.timestamp)}
+				</span>
+				{!isLoading &&
+				settings?.showAgentActivity &&
+				message.data?.activities?.length ? (
+					<ActivityDetails activities={message.data.activities} inline />
+				) : null}
 			</div>
 			{isLoading ? (
-				<div
-					className={classes.assistantBubble}
-					style={{ width: "calc(100% - 40px)" }}
-				>
-					<div className={classes.skeletonLine} style={{ width: "100%" }} />
-					<div className={classes.skeletonLine} style={{ width: "75%" }} />
-					<div className={classes.skeletonLine} style={{ width: "50%" }} />
-				</div>
+				<>
+					<div
+						className={classes.assistantBubble}
+						style={{ width: "calc(100% - 40px)" }}
+					>
+						<div className={classes.skeletonLine} style={{ width: "100%" }} />
+						<div className={classes.skeletonLine} style={{ width: "75%" }} />
+						<div className={classes.skeletonLine} style={{ width: "50%" }} />
+					</div>
+					{settings?.showAgentActivity && message.data?.activities?.length ? (
+						<ActivityDetails
+							activities={message.data.activities}
+							progressLabel={
+								message.data.activities[message.data.activities.length - 1]
+									.label
+							}
+						/>
+					) : null}
+				</>
 			) : isHtml ? (
 				<div className={classes.assistantCard}>
 					<IsolatedHtmlRenderer html={resolved} theme={theme} />
@@ -83,7 +105,10 @@ export const ChatMessageBubble = ({ message }: IChatMessageBubbleProps) => {
 			{!isLoading && (
 				<CopyMessageButton
 					message={message}
-					className={`${classes.copyButton} ${classes.copyButtonAssistant}`}
+					className={mergeClasses(
+						classes.copyButton,
+						classes.copyButtonAssistant,
+					)}
 				/>
 			)}
 		</div>

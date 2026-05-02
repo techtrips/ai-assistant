@@ -29,6 +29,8 @@ export const useChatAreaStyles = makeStyles({
 	typingIndicator: {
 		display: "inline-flex",
 		alignItems: "center",
+		alignSelf: "center",
+		height: "32px",
 		...shorthands.gap("6px"),
 	},
 	typingDot: {

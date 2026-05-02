@@ -228,18 +228,21 @@ const safeAnchors = (html: string): string =>
 /**
  * The default renderer chain.
  *
- * Order: template → adaptive card → dynamic UI → markdown.
+ * Order: template → adaptive card → markdown.
  *
  * Templates run first because they are the most explicit / consumer-controlled
  * signal (consumer registered a template + agent set `data.templateId`).
- * Adaptive cards and dynamic UI run next so structured `data.payload`
- * responses get a rich render. Markdown is the final fallback: it handles
- * pre-rendered HTML payloads and the assistant's prose `message.content`
- * when no other renderer claimed the message.
+ * Adaptive cards run next so structured `data.payload` responses get a rich
+ * render. Markdown is the final fallback: it handles pre-rendered HTML
+ * payloads and the assistant's prose `message.content` when no other
+ * renderer claimed the message.
+ *
+ * `dynamicUiRenderer` is intentionally excluded from the default chain
+ * because it is slow and costs LLM tokens. Hosts that want it must include
+ * it explicitly via the `messageRenderers` prop.
  */
 export const defaultMessageRenderers: IMessageRenderer[] = [
 	templateRenderer,
 	adaptiveCardRenderer,
-	dynamicUiRenderer,
 	markdownRenderer,
 ];

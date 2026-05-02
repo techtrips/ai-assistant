@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [1.8.0](#180--2026-05-02) | 2026-05-02 | Settings panel gained admin-controlled **extension visibility toggles**, **renderer reorder UI**, and **Markdown** renderer toggle. **Default renderer chain** trimmed: `dynamicUi` removed (still exported — hosts must opt in via `messageRenderers`). New **`agentName` prop** on `<AIAssistant>` is now the single source of truth for agent scoping; `AIAssistantService` constructor no longer accepts `agentName` (use `setAgentName` for non-React consumers). |
 | [1.7.0](#170--2026-05-02) | 2026-05-02 | Per-agent isolation extended to **templates** and **user/global settings** (alongside existing prompts, conversations, agent names) — scoped `AIAssistantService` embeds no longer share template lists or settings with the host app |
 | [1.6.0](#160--2026-05-02) | 2026-05-02 | Logs panel polish: turn dropdown (server-driven via new `getThreadTurns`), infinite-scroll pagination, collapsible rows, hide-duplicates toggle, content-derived friendly thread names in history & logs |
 | [1.5.4](#154--2026-05-01) | 2026-05-01 | Re-publish of 1.5.3 (`agUiAdapter` correctness pass: per-call `HttpAgent`, deduped error events, abort-listener cleanup, opt-in `forwardHistory`) |
@@ -33,6 +34,44 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+## [1.8.0] — 2026-05-02
+
+Admins (`ManageSettings` permission) can now tailor the assistant chrome and message-rendering pipeline at runtime, without code changes from the host app. This release also consolidates agent scoping behind a single `agentName` prop on `<AIAssistant>`.
+
+### Added
+
+- **`agentName` prop on `<AIAssistant>`.** Single source of truth for the agent the assistant is talking to. When set, the bootstrap effect skips the `getAgentNames()` discovery call and pushes the value into the service via `setAgentName()` so per-request URLs (templates, settings, conversations, starter prompts) stay scoped without the host having to configure it twice.
+- **`IAIAssistantService.setAgentName(name?)`.** New required method on the service contract. The built-in `AIAssistantService` ships an implementation; custom service implementations must add one (no-op is fine for unscoped backends).
+- **Visible features (extensions) toggle.** New "Visible features" section in Settings lists every extension actually configured on the assistant (`extensions` prop — or the package defaults if omitted). Admins can hide/show each one (the `Settings` extension itself stays visible to admins so they can recover). Stored as `IAIAssistantSettings.enabledExtensions: Record<string, boolean>` in **global** settings.
+- **Renderer order UI.** New "Renderer order" section with up/down buttons lets admins reorder the active renderer chain. Saved as `IAIAssistantSettings.rendererOrder: string[]` in **global** settings; `buildRendererChain` honors it (renderers not in the list keep their relative order at the end).
+- **Markdown renderer toggle.** `MessageRendererType.Markdown` is now a first-class entry in the renderer enable/disable list (previously it was implicitly always-on).
+- Context exposes `configuredExtensions` and `configuredRendererTypes` for extensions that need to introspect the host setup.
+
+### Changed
+
+- **Breaking:** `ICreateServiceOptions.agentName` removed. Pass the scope via the `<AIAssistant agentName="…">` prop, or call `service.setAgentName(name)` directly for non-React consumers. This eliminates the dual-source-of-truth where hosts had to keep the prop and the constructor option in sync.
+- **Breaking:** `IAIAssistantService` now requires a `setAgentName(name?)` method. Custom service implementations must add one.
+- **Default renderer chain trimmed:** `defaultMessageRenderers` is now `[template, adaptiveCard, markdown]`. `dynamicUiRenderer` is still exported but **opt-in** — hosts that want LLM-generated HTML must pass an explicit `messageRenderers` prop including it. This avoids surprise LLM-token costs in default deployments.
+- **Removed `visibleAgents` setting.** Redundant now that services are scoped per-agent and the prop drives discovery; the agent picker UI was removed alongside it.
+
+### Migration
+
+For each `<AIAssistant>` site:
+
+```diff
+- new AIAssistantService({ baseUrl, getToken, agentName: "My Agent" })
++ new AIAssistantService({ baseUrl, getToken })
+
+  <AIAssistant
++   agentName="My Agent"
+    service={service}
+    …
+  />
+```
+
+Custom `IAIAssistantService` implementations must add `setAgentName(name?: string): void`. A no-op body is acceptable when the backend isn't agent-scoped.
 
 ---
 ## [1.7.0] — 2026-05-02

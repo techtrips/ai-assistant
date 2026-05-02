@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef } from "react";
 import { mergeClasses } from "@fluentui/react-components";
 import { SparkleRegular } from "@fluentui/react-icons";
 import { ChatMessageBubble } from "./chat-message-bubble";
-import { useChatMessageBubbleStyles, formatTime } from "./chat-message-bubble";
+import {
+	ActivityDetails,
+	StreamingMarkdown,
+	useChatMessageBubbleStyles,
+} from "./chat-message-bubble";
 import { useAutoScroll } from "./useAutoScroll";
 import { useChatAreaStyles } from "./ChatArea.styles";
 import { LazyMessage } from "./LazyMessage";
@@ -15,13 +19,18 @@ export const ChatArea = ({
 	messages,
 	isStreaming,
 	streamingText,
-	statusLabel,
+	streamingActivities,
+	hasToolActivity,
 	totalMessageCount = 0,
 	onLoadMore,
 }: IChatAreaProps) => {
 	const classes = useChatAreaStyles();
 	const msgClasses = useChatMessageBubbleStyles();
-	const { scrollRef } = useAutoScroll(messages.length, isStreaming);
+	const { scrollRef } = useAutoScroll(
+		messages.length,
+		isStreaming,
+		streamingActivities?.length ?? 0,
+	);
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const prevScrollHeightRef = useRef(0);
 
@@ -58,6 +67,14 @@ export const ChatArea = ({
 		[scrollRef],
 	);
 
+	// When the agent invokes a tool, the final reply is almost always
+	// rendered as an Adaptive Card / template (a completely different
+	// visual from raw markdown text). Showing the in-flight markdown only
+	// to swap it for a card moments later is jarring, so we suppress the
+	// streaming text bubble in that case and let the activity panel +
+	// typing indicator carry the experience until the card appears.
+	const hasActivities = (streamingActivities?.length ?? 0) > 0;
+
 	return (
 		<div ref={combinedRef} className={classes.thread} onScroll={handleScroll}>
 			{messages.map((message, index) => (
@@ -75,8 +92,14 @@ export const ChatArea = ({
 						<span className={msgClasses.avatar}>
 							<SparkleRegular fontSize={18} />
 						</span>
-						{streamingText ? (
-							<span>{formatTime(new Date().toISOString())}</span>
+						{hasActivities ? (
+							<ActivityDetails
+								activities={streamingActivities ?? []}
+								progressLabel={
+									streamingActivities![streamingActivities!.length - 1].label
+								}
+								inline
+							/>
 						) : (
 							<div className={classes.typingIndicator}>
 								{TYPING_DOT_CLASSES.map((cls) => (
@@ -85,14 +108,17 @@ export const ChatArea = ({
 										className={mergeClasses(classes.typingDot, classes[cls])}
 									/>
 								))}
-								{statusLabel && (
-									<span className={classes.statusLabel}>{statusLabel}</span>
-								)}
 							</div>
 						)}
 					</div>
-					{streamingText && (
-						<div className={msgClasses.assistantBubble}>{streamingText}</div>
+					{streamingText && !hasToolActivity && (
+						<div className={msgClasses.assistantBubble}>
+							<StreamingMarkdown
+								text={streamingText}
+								className={msgClasses.streamingMarkdown}
+							/>
+							<span className={msgClasses.streamingCaret} aria-hidden />
+						</div>
 					)}
 				</div>
 			)}

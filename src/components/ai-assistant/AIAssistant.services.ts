@@ -176,29 +176,37 @@ export interface IAIAssistantService
 	extends IStarterPromptService,
 		ITemplateService,
 		IConversationService,
-		ISettingsService {}
+		ISettingsService {
+	/** Current agent scope, if any. */
+	agentName?: string;
+	/** Update the agent scope (driven by the `<AIAssistant agentName>` prop). */
+	setAgentName(name?: string): void;
+}
 
 export interface ICreateServiceOptions {
 	baseUrl: string;
 	getToken: () => Promise<string>;
-	/**
-	 * Optional agent scope. When set, the service constrains
-	 * conversations, starter prompts, agent names, templates, and
-	 * settings (user + global) to this agent so embeds (e.g. the Agent
-	 * Playground) don't share state with the host app's other agents.
-	 */
-	agentName?: string;
 }
 
 export class AIAssistantService implements IAIAssistantService {
 	private readonly baseUrl: string;
 	private readonly getToken: () => Promise<string>;
-	private readonly agentName?: string;
+	/**
+	 * Agent scope for this service instance. Driven by the
+	 * `<AIAssistant agentName>` prop via `setAgentName`. Used to scope
+	 * per-request URLs (templates, settings, conversations, starter
+	 * prompts) so embeds don't share state with other agents.
+	 */
+	agentName?: string;
 
 	constructor(options: ICreateServiceOptions) {
 		this.baseUrl = options.baseUrl;
 		this.getToken = options.getToken;
-		this.agentName = options.agentName;
+	}
+
+	/** Update the agent scope used for per-request URLs. */
+	setAgentName(name?: string): void {
+		this.agentName = name;
 	}
 
 	private async fetchApi<T>(

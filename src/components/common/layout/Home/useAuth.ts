@@ -8,6 +8,7 @@ interface IUseAuthOptions {
 
 export function useAuth({ apiBaseUrl, email, password }: IUseAuthOptions) {
 	const [loginError, setLoginError] = useState<string>("");
+	const [ready, setReady] = useState(false);
 	const tokenRef = useRef<string>("");
 	const refreshTokenRef = useRef<string>("");
 
@@ -34,6 +35,7 @@ export function useAuth({ apiBaseUrl, email, password }: IUseAuthOptions) {
 				tokenRef.current = data.token;
 				refreshTokenRef.current = data.refreshToken;
 				setLoginError("");
+				setReady(true);
 			} catch {
 				setLoginError("Login error: unable to reach API.");
 			}
@@ -65,5 +67,5 @@ export function useAuth({ apiBaseUrl, email, password }: IUseAuthOptions) {
 		return "";
 	}, [apiBaseUrl]);
 
-	return { loginError, getAccessToken };
+	return { loginError, ready, getAccessToken };
 }

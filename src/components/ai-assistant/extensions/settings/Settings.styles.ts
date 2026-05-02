@@ -104,4 +104,27 @@ export const useSettingsStyles = makeStyles({
 			color: tokens.colorPaletteRedForeground1,
 		},
 	},
+	orderRow: {
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "space-between",
+		...shorthands.gap("12px"),
+		...shorthands.padding("8px", "14px"),
+		...shorthands.borderBottom("1px", "solid", tokens.colorNeutralStroke3),
+		":last-child": { borderBottomStyle: "none" },
+	},
+	orderIndex: {
+		display: "inline-flex",
+		alignItems: "center",
+		justifyContent: "center",
+		minWidth: "20px",
+		height: "20px",
+		fontSize: tokens.fontSizeBase100,
+		fontWeight: tokens.fontWeightSemibold,
+		color: tokens.colorNeutralForeground3,
+	},
+	orderActions: {
+		display: "inline-flex",
+		...shorthands.gap("4px"),
+	},
 });

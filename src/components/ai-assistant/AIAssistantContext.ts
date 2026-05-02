@@ -6,6 +6,7 @@ import type {
 } from "./AIAssistant.types";
 import type { IStarterPrompt } from "./AIAssistant.types";
 import type { IAIAssistantService } from "./AIAssistant.services";
+import type { AIAssistantExtension } from "./extensions/types";
 import type { IMessageRenderer } from "./messageRenderers";
 
 type SetMessagesAction =
@@ -34,6 +35,18 @@ export interface IAIAssistantContextValue {
 	theme: "light" | "dark";
 	settings: IAIAssistantSettings;
 	messageRenderers?: IMessageRenderer[];
+	/**
+	 * Resolved list of extensions configured for this assistant instance
+	 * (host-provided list, or `DEFAULT_EXTENSIONS` if none was passed).
+	 * Used by the Settings panel to render visibility toggles only for
+	 * extensions that are actually configured.
+	 */
+	configuredExtensions: AIAssistantExtension[];
+	/**
+	 * Built-in renderer types present in the active chain (excluding Custom).
+	 * Used by the Settings panel to render the renderer-order UI.
+	 */
+	configuredRendererTypes: string[];
 	updateSettings: (
 		user: Partial<IAIAssistantSettings>,
 		global: Partial<IAIAssistantSettings>,

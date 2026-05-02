@@ -26,6 +26,10 @@ import { Settings } from "./extensions/settings";
 import { StarterPrompts } from "./extensions/starter-prompts";
 import { TemplateRenderer } from "./extensions/template-renderer";
 import type { AIAssistantExtension } from "./extensions/types";
+import {
+	defaultMessageRenderers,
+	MessageRendererType,
+} from "./messageRenderers";
 import { useChatState } from "./useChatState";
 import { useResizePanel } from "./useResizePanel";
 
@@ -76,6 +80,7 @@ export const useAIAssistant = ({
 	permissions = [AIAssistantPermission.View],
 	context,
 	messageRenderers,
+	agentName,
 	onError,
 }: Pick<
 	IAIAssistantProps,
@@ -87,6 +92,7 @@ export const useAIAssistant = ({
 	| "permissions"
 	| "context"
 	| "messageRenderers"
+	| "agentName"
 	| "onError"
 >) => {
 	const isMobile = useSyncExternalStore(subscribeMobile, getIsMobile);
@@ -94,6 +100,8 @@ export const useAIAssistant = ({
 	const effectiveFullScreen = isFullScreen && !isMobile;
 	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 	const [activeView, setActiveView] = useState(CHAT_VIEW);
+	const [settings, setSettings] =
+		useState<IAIAssistantSettings>(DEFAULT_SETTINGS);
 
 	const {
 		messages,
@@ -103,10 +111,14 @@ export const useAIAssistant = ({
 		isStreaming,
 		streamingText,
 		statusLabel,
+		streamingActivities,
+		hasToolActivity,
 		sendMessage,
 		abort,
 		newChat,
-	} = useChatState(chatAdapter, onError);
+	} = useChatState(chatAdapter, onError, {
+		captureActivityDetails: settings.showAgentActivity,
+	});
 
 	const [starterPrompts, setStarterPrompts] = useState<IStarterPrompt[]>([]);
 	// When no service is provided, there's nothing to fetch — start unloaded
@@ -116,8 +128,6 @@ export const useAIAssistant = ({
 		Boolean(service),
 	);
 	const [agentNames, setAgentNames] = useState<string[]>([]);
-	const [settings, setSettings] =
-		useState<IAIAssistantSettings>(DEFAULT_SETTINGS);
 	const [activeParameterizedPrompt, setActiveParameterizedPrompt] =
 		useState<IStarterPrompt | null>(null);
 
@@ -133,18 +143,21 @@ export const useAIAssistant = ({
 		onResizeStart,
 	} = useResizePanel(isSidePanel);
 
-	// Keep a ref of all agent names (unfiltered) for re-filtering
-	const allAgentNamesRef = useRef<string[]>([]);
-
 	useEffect(() => {
 		if (!service) return;
+		// Push the prop-supplied agent scope into the service so a single
+		// source of truth (the prop) drives both discovery and per-request
+		// URL scoping inside the service.
+		service.setAgentName(agentName);
 		let cancelled = false;
 		let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
 		const fetchAll = (isRetry = false) => {
-			const agentsPromise = service
-				.getAgentNames()
-				.catch(() => ({ data: [] as string[] }));
+			// When the host already knows the agent (passed via props), skip the
+			// discovery call and use it directly. Otherwise ask the service.
+			const agentsPromise = agentName
+				? Promise.resolve({ data: [agentName] })
+				: service.getAgentNames().catch(() => ({ data: [] as string[] }));
 			const settingsPromise = Promise.all([
 				service.getUserSettings().catch(() => ({ data: undefined })),
 				service.getGlobalSettings().catch(() => ({ data: undefined })),
@@ -165,8 +178,6 @@ export const useAIAssistant = ({
 						allAgents = [DEFAULT_AGENT];
 					}
 
-					allAgentNamesRef.current = allAgents;
-
 					const merged = {
 						...DEFAULT_SETTINGS,
 						...(globalResult.data ?? {}),
@@ -179,18 +190,11 @@ export const useAIAssistant = ({
 					};
 					setSettings(merged);
 
-					const globalAgents = globalResult.data?.visibleAgents;
-					const filteredAgents =
-						globalAgents && globalAgents.length > 0
-							? allAgents.filter((a) => globalAgents.includes(a))
-							: allAgents;
-					const effectiveAgents =
-						filteredAgents.length > 0 ? filteredAgents : allAgents;
-					setAgentNames(effectiveAgents);
+					setAgentNames(allAgents);
 
-					if (effectiveAgents.length > 0) {
+					if (allAgents.length > 0) {
 						service
-							.getStarterPrompts(effectiveAgents)
+							.getStarterPrompts(allAgents)
 							.then((promptResult) => {
 								if (!cancelled && promptResult.data) {
 									const sorted = [...promptResult.data].sort(
@@ -217,7 +221,7 @@ export const useAIAssistant = ({
 			cancelled = true;
 			if (retryTimer) clearTimeout(retryTimer);
 		};
-	}, [service]);
+	}, [service, agentName]);
 
 	const updateSettings = useCallback(
 		(
@@ -231,12 +235,6 @@ export const useAIAssistant = ({
 				...(global.enabledRenderers ?? {}),
 			};
 			setSettings(merged);
-
-			const va = global.visibleAgents;
-			const all = allAgentNamesRef.current;
-			const filtered =
-				va && va.length > 0 ? all.filter((a) => va.includes(a)) : all;
-			setAgentNames(filtered.length > 0 ? filtered : all);
 		},
 		[],
 	);
@@ -347,6 +345,24 @@ export const useAIAssistant = ({
 		return matched.length > 0 ? matched : starterPrompts;
 	}, [starterPrompts, context]);
 
+	const configuredExtensions = useMemo(
+		() => extensions ?? DEFAULT_EXTENSIONS,
+		[extensions],
+	);
+
+	const configuredRendererTypes = useMemo(() => {
+		const source = messageRenderers ?? defaultMessageRenderers;
+		const seen = new Set<string>();
+		const types: string[] = [];
+		for (const r of source) {
+			if (r.type === MessageRendererType.Custom) continue;
+			if (seen.has(r.type)) continue;
+			seen.add(r.type);
+			types.push(r.type);
+		}
+		return types;
+	}, [messageRenderers]);
+
 	const contextValue: IAIAssistantContextValue = useMemo(
 		() => ({
 			sendMessage,
@@ -370,6 +386,8 @@ export const useAIAssistant = ({
 			theme,
 			settings,
 			messageRenderers,
+			configuredExtensions,
+			configuredRendererTypes,
 			updateSettings,
 		}),
 		[
@@ -394,19 +412,33 @@ export const useAIAssistant = ({
 			theme,
 			settings,
 			messageRenderers,
+			configuredExtensions,
+			configuredRendererTypes,
 			updateSettings,
 		],
 	);
 
 	const hasMessages = messages.length > 0 || isStreaming;
 
+	const canManageSettings = checkPermission(
+		permissions,
+		AIAssistantPermission.ManageSettings,
+	);
+
 	const visibleExtensions = useMemo(
 		() =>
-			(extensions ?? DEFAULT_EXTENSIONS).filter((ext) => {
-				const required = EXTENSION_PERMISSIONS[ext.extensionMeta.key];
-				return !required || checkPermission(permissions, required);
+			configuredExtensions.filter((ext) => {
+				const key = ext.extensionMeta.key;
+				const required = EXTENSION_PERMISSIONS[key];
+				if (required && !checkPermission(permissions, required)) return false;
+				// Settings extension is always shown to admins so they can recover
+				// after disabling other extensions.
+				if (key === "settings" && canManageSettings) return true;
+				const enabledMap = settings.enabledExtensions;
+				if (enabledMap && enabledMap[key] === false) return false;
+				return true;
 			}),
-		[extensions, permissions],
+		[configuredExtensions, permissions, settings, canManageSettings],
 	);
 
 	const handleToggleFullScreen = useCallback(() => {
@@ -479,7 +511,9 @@ export const useAIAssistant = ({
 		messages,
 		isStreaming,
 		streamingText,
-		statusLabel,
+		statusLabel: settings.showAgentActivity ? statusLabel : "",
+		streamingActivities: settings.showAgentActivity ? streamingActivities : [],
+		hasToolActivity,
 		totalMessageCount,
 		loadOlderMessages,
 		sendMessage,

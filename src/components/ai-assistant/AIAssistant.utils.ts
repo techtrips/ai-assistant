@@ -131,10 +131,14 @@ export const resolveMessage = (
  * - If `renderers` is undefined, `defaultMessageRenderers` is used.
  * - Custom-type renderers always run first, preserving relative order.
  * - Built-in renderers are filtered by the `enabledRenderers` settings map.
+ * - Built-in renderer order is overridden by `rendererOrder` from settings
+ *   when provided. Renderers not listed in `rendererOrder` keep their
+ *   original relative order at the end of the chain.
  */
 const buildRendererChain = (
 	renderers: IMessageRenderer[] | undefined,
 	enabledRenderers: Record<string, boolean>,
+	rendererOrder?: string[],
 ): IMessageRenderer[] => {
 	const source = renderers ?? defaultMessageRenderers;
 	const custom: IMessageRenderer[] = [];
@@ -150,7 +154,16 @@ const buildRendererChain = (
 		}
 	}
 
-	return [...custom, ...builtIn];
+	let ordered = builtIn;
+	if (rendererOrder && rendererOrder.length > 0) {
+		const indexOf = (type: string) => {
+			const i = rendererOrder.indexOf(type);
+			return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+		};
+		ordered = [...builtIn].sort((a, b) => indexOf(a.type) - indexOf(b.type));
+	}
+
+	return [...custom, ...ordered];
 };
 
 const resolveMessageImpl = async (
@@ -165,6 +178,7 @@ const resolveMessageImpl = async (
 	const chain = buildRendererChain(
 		renderers,
 		effectiveSettings.enabledRenderers,
+		effectiveSettings.rendererOrder,
 	);
 	const ctx = {
 		message,

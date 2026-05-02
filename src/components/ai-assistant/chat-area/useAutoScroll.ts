@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef } from "react";
 
 const BOTTOM_THRESHOLD = 50;
 
-export const useAutoScroll = (messageCount: number, isStreaming = false) => {
+export const useAutoScroll = (
+	messageCount: number,
+	isStreaming = false,
+	activityCount = 0,
+) => {
 	const elRef = useRef<HTMLDivElement | null>(null);
 	const lockedRef = useRef(true);
 	const streamingRef = useRef(isStreaming);
@@ -85,6 +89,13 @@ export const useAutoScroll = (messageCount: number, isStreaming = false) => {
 		lockedRef.current = true;
 		doScroll();
 	}, [messageCount, doScroll]);
+
+	// Keep pinned to bottom while activities stream in (e.g. tool calls
+	// where there's no streaming text bubble to grow the DOM).
+	useEffect(() => {
+		if (!streamingRef.current) return;
+		doScroll();
+	}, [activityCount, doScroll]);
 
 	useEffect(() => {
 		return () => {

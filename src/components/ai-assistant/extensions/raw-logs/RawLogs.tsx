@@ -1,10 +1,12 @@
 import {
 	ArrowClockwise16Regular,
+	CheckmarkRegular,
 	ChevronDown16Regular,
 	ChevronRight16Regular,
+	CopyRegular,
 	History20Regular,
 } from "@fluentui/react-icons";
-import { mergeClasses } from "@fluentui/react-components";
+import { Button, Tooltip, mergeClasses } from "@fluentui/react-components";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { defineExtension } from "../types";
 import type { IExtensionProps } from "../types";
@@ -14,6 +16,41 @@ import type { IThreadEvent } from "../../AIAssistant.services";
 import { friendlyThreadName } from "../../AIAssistant.utils";
 import { useRawLogsStyles } from "./RawLogs.styles";
 import { useRawLogs } from "./useRawLogs";
+
+interface ICopyLogButtonProps {
+	text: string;
+	className?: string;
+}
+
+const CopyLogButton = ({ text, className }: ICopyLogButtonProps) => {
+	const [copied, setCopied] = useState(false);
+	const label = copied ? "Copied" : "Copy";
+	const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+		e.preventDefault();
+		e.stopPropagation();
+		const finish = () => {
+			setCopied(true);
+			window.setTimeout(() => setCopied(false), 1500);
+		};
+		if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+			navigator.clipboard.writeText(text).then(finish, finish);
+		} else {
+			finish();
+		}
+	};
+	return (
+		<Tooltip content={label} relationship="label" withArrow>
+			<Button
+				appearance="subtle"
+				size="small"
+				icon={copied ? <CheckmarkRegular /> : <CopyRegular />}
+				onClick={handleClick}
+				className={className}
+				aria-label={label}
+			/>
+		</Tooltip>
+	);
+};
 
 const formatTimestamp = (iso: string): string => {
 	const d = new Date(iso);
@@ -353,7 +390,13 @@ const RawLogsPanel = ({ onClose }: IExtensionProps) => {
 								</span>
 							</button>
 							{isOpen && ev.content && (
-								<pre className={classes.content}>{ev.content}</pre>
+								<div className={classes.contentWrapper}>
+									<CopyLogButton
+										text={ev.content}
+										className={classes.copyButton}
+									/>
+									<pre className={classes.content}>{ev.content}</pre>
+								</div>
 							)}
 						</div>
 					);

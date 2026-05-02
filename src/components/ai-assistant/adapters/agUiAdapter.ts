@@ -1,40 +1,77 @@
 import { HttpAgent } from "@ag-ui/client";
-import type { AgentSubscriber } from "@ag-ui/client";
-import type { RunAgentInput, Message } from "@ag-ui/core";
+import type { Message, RunAgentInput } from "@ag-ui/core";
+import type { IChatMessageData } from "../AIAssistant.types";
+import { defaultMapData } from "./agUiAdapter.helpers";
+import { buildAguiSubscriber } from "./agUiAdapter.subscriber";
 import { buildAuthHeaders } from "./http";
 import type {
-	IChatAdapter,
 	ChatEvent,
+	IChatAdapter,
 	ISendMessageRequest,
 	IToolCallInfo,
 	MapDataFn,
 } from "./types";
-import type { IChatMessageData } from "../AIAssistant.types";
 
-interface AgUiAdapterOptions {
+// Re-export so existing consumers importing from this module path don't
+// need to change their imports.
+export { defaultMapData } from "./agUiAdapter.helpers";
+
+/**
+ * Configuration for {@link agUiAdapter}.
+ */
+export interface AgUiAdapterOptions {
+	/**
+	 * Fully-qualified URL of the AG-UI server endpoint (e.g.
+	 * `https://agent.example.com/agui`).
+	 */
 	url: string;
+	/**
+	 * Async resolver for the bearer token sent on every request. Called
+	 * once per `sendMessage`. If it rejects (or returns ""), the call
+	 * proceeds unauthenticated and the server's response will determine
+	 * the error surface (typically a 401 surfaced as a typed `error`
+	 * event in the stream).
+	 *
+	 * Set `onTokenError` to react to token-fetch failures explicitly.
+	 */
 	getToken: () => Promise<string>;
 	/**
-	 * Transform raw tool call results into the library's canonical data model.
-	 * Default: tool results → payload (stringified), first tool name → templateId.
-	 * Override this for agents whose conventions differ.
+	 * Transform raw tool call results into the library's canonical
+	 * {@link IChatMessageData} shape. Default: tool results → `payload`
+	 * (stringified), first tool name → `templateId`. Override for agents
+	 * whose conventions differ.
 	 */
 	mapData?: MapDataFn;
 	/**
-	 * When `true`, prior conversation turns from `request.history` are sent
-	 * along with the user message in each AG-UI run. Use this for stateless
-	 * AG-UI servers that don't persist history themselves.
+	 * When `true`, prior conversation turns from `request.history` are
+	 * sent with each AG-UI run. Use this for stateless AG-UI servers
+	 * that don't persist history themselves.
 	 *
-	 * Default `false`: most AG-UI servers (including TechTrips) attach a
-	 * `ChatHistoryProvider` keyed by `threadId` and rehydrate prior turns
-	 * server-side. Forwarding history in that setup would duplicate every
-	 * turn.
+	 * Default `false`: most AG-UI servers attach a `ChatHistoryProvider`
+	 * keyed by `threadId` and rehydrate prior turns server-side. Forwarding
+	 * history in that setup would duplicate every turn.
 	 */
 	forwardHistory?: boolean;
+	/**
+	 * When `true`, every AG-UI event is logged to the console as
+	 * `[agui] <EVENT_TYPE>` along with its raw payload. Useful for
+	 * diagnosing missing status labels — if you only see `RUN_STARTED`
+	 * and `TEXT_MESSAGE_*` events, the agent isn't emitting any tool /
+	 * step / reasoning / activity events the chip can surface.
+	 */
+	debug?: boolean;
+	/**
+	 * Optional hook invoked when {@link AgUiAdapterOptions.getToken}
+	 * rejects. Receives the original error so the host can surface it
+	 * (toast, telemetry, re-auth flow). The adapter still proceeds with
+	 * an empty token after invoking this hook.
+	 */
+	onTokenError?: (error: unknown) => void;
 }
 
 /**
- * Extended HttpAgent that injects `model` into the POST body.
+ * Extended `HttpAgent` that injects an arbitrary `model` field into the
+ * POST body so the AG-UI server can route to the requested model.
  */
 class ExtendedHttpAgent extends HttpAgent {
 	public model?: string;
@@ -50,116 +87,56 @@ class ExtendedHttpAgent extends HttpAgent {
 }
 
 /**
- * Default data mapper: tool results → payload (stringified), first tool name → templateId.
- * Works for agents that follow the convention of tool name = template name.
+ * Creates an {@link IChatAdapter} backed by the AG-UI protocol.
  *
- * MCP-shape unwrap: MCP tools return their result as a content-block array
- * like `[{ "type": "text", "text": "<inner-json-or-prose>" }, ...]`. Treating
- * that wrapper as the payload causes the Adaptive Card renderer to render a
- * useless 2-column "Type | Text" table whose cell contains the raw inner
- * JSON. We detect that shape and unwrap to the inner content. If the inner
- * content is itself a JSON object/array, we expose THAT as the payload (so
- * AC can render it properly as item cards or a real table). Otherwise we
- * drop the payload entirely so the markdown renderer can take over with the
- * assistant's own prose.
- */
-const isMcpContentBlock = (v: unknown): v is { type: string; text?: string } =>
-	typeof v === "object" &&
-	v !== null &&
-	(v as { type?: unknown }).type === "text" &&
-	typeof (v as { text?: unknown }).text === "string";
-
-const unwrapMcpContent = (parsed: unknown): unknown => {
-	// Single content block.
-	if (isMcpContentBlock(parsed)) {
-		const inner = (parsed as { text: string }).text;
-		try {
-			return JSON.parse(inner);
-		} catch {
-			return inner;
-		}
-	}
-	// Array of content blocks.
-	if (
-		Array.isArray(parsed) &&
-		parsed.length > 0 &&
-		parsed.every(isMcpContentBlock)
-	) {
-		const texts = (parsed as Array<{ text: string }>).map((b) => b.text);
-		// If a single block, unwrap to its inner JSON / string directly.
-		if (texts.length === 1) {
-			try {
-				return JSON.parse(texts[0]);
-			} catch {
-				return texts[0];
-			}
-		}
-		// Multiple blocks: try to JSON-parse each; if all parse, return array.
-		const parsedAll: unknown[] = [];
-		let allJson = true;
-		for (const t of texts) {
-			try {
-				parsedAll.push(JSON.parse(t));
-			} catch {
-				allJson = false;
-				break;
-			}
-		}
-		return allJson ? parsedAll : texts.join("\n\n");
-	}
-	return parsed;
-};
-
-export const defaultMapData: MapDataFn = (toolCalls) => {
-	const results = toolCalls
-		.filter((tc) => tc.result)
-		.map((tc) => {
-			try {
-				// biome-ignore lint/style/noNonNullAssertion: guarded by filter
-				return unwrapMcpContent(JSON.parse(tc.result!));
-			} catch {
-				return tc.result;
-			}
-		});
-	let payload: string | undefined;
-	if (results.length > 0) {
-		const p = results.length === 1 ? results[0] : results;
-		// Only expose a payload when the unwrapped result is structured data
-		// the AC / template / dynamic-ui renderers can actually use. Plain
-		// strings should fall through to the assistant's markdown text.
-		if (p !== null && p !== undefined && typeof p === "object") {
-			payload = JSON.stringify(p);
-		}
-	}
-	const templateId = toolCalls[0]?.name || undefined;
-	const toolsUsed = toolCalls.map((tc) => tc.name).filter(Boolean);
-	return {
-		...(payload && { payload }),
-		...(templateId && { templateId }),
-		...(toolsUsed.length > 0 && { toolsUsed }),
-	};
-};
-
-/**
- * Creates a ChatAdapter backed by the AG-UI protocol.
- *
- * Usage:
  * ```ts
- * const adapter = agUiAdapter({ url: "https://agent.example.com/agui", getToken });
+ * const adapter = agUiAdapter({
+ *   url: "https://agent.example.com/agui",
+ *   getToken: async () => msalToken,
+ * });
  * ```
+ *
+ * Each `sendMessage` call constructs a fresh `HttpAgent` instance — the
+ * AG-UI client mutates `agent.threadId`, `agent.headers`, and
+ * `agent.messages` per run, so reusing one across concurrent invocations
+ * would race on those fields.
  */
 export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
+	if (options.debug) {
+		// eslint-disable-next-line no-console
+		console.log("%c[agui] adapter created", "color:#0a7;font-weight:bold", {
+			url: options.url,
+		});
+	}
 	return {
 		async *sendMessage(
 			request: ISendMessageRequest,
 		): AsyncGenerator<ChatEvent> {
-			// Construct a fresh HttpAgent per call. The AG-UI client mutates
-			// agent.threadId / headers / messages on every run, so reusing
-			// one instance across concurrent sendMessage invocations would
-			// race on those fields.
+			if (options.debug) {
+				// eslint-disable-next-line no-console
+				console.log(
+					"%c[agui] sendMessage",
+					"color:#0a7;font-weight:bold",
+					request.messageId,
+				);
+			}
 			const agent = new ExtendedHttpAgent({ url: options.url });
 
-			const token = await options.getToken().catch(() => "");
+			let token = "";
+			try {
+				token = await options.getToken();
+			} catch (err) {
+				options.onTokenError?.(err);
+				if (options.debug) {
+					// eslint-disable-next-line no-console
+					console.warn("[agui] getToken rejected", err);
+				}
+			}
+
+			// When the host UI has activity-details disabled we skip the
+			// JSON parse/stringify work entirely so large payloads don't
+			// hit the main thread per tool/activity event.
+			const captureDetails = request.captureActivityDetails !== false;
 
 			agent.threadId = request.threadId;
 			agent.headers = await buildAuthHeaders(
@@ -185,9 +162,12 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 			});
 			agent.setMessages(messages);
 
-			// Use a queue to bridge the callback-based subscriber to async iteration
+			// Bridge the callback-based subscriber to async iteration.
+			// Head index instead of `Array.shift` (O(n)) so chatty agents
+			// don't degrade as the queue grows.
 			type QueueItem = ChatEvent | null; // null = done
 			const queue: QueueItem[] = [];
+			let head = 0;
 			let resolve: (() => void) | null = null;
 			let finished = false;
 
@@ -202,90 +182,30 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 
 			let textEndReceived = false;
 			let streamedText = "";
-			// AG-UI emits both `onRunErrorEvent` (server-side error event in
-			// the stream) and `onRunFailed` (terminal failure of the run
-			// promise) for the same failure. Only surface one.
+			// AG-UI emits both `onRunErrorEvent` (server-side) and
+			// `onRunFailed` (terminal failure of the run promise) for the
+			// same failure. Only surface one.
 			let errorPushed = false;
 			const toolCalls = new Map<string, IToolCallInfo>();
-
 			const mapData = options.mapData ?? defaultMapData;
 
-			const subscriber: AgentSubscriber = {
-				onTextMessageStartEvent: () => {},
-				onTextMessageContentEvent: (params) => {
-					const delta = params.event.delta ?? "";
+			const subscriber = buildAguiSubscriber({
+				push: (event) => push(event),
+				captureDetails,
+				toolCalls,
+				debug: options.debug,
+				onTextDelta: (delta) => {
 					streamedText += delta;
-					push({ type: "text-delta", content: delta });
 				},
-				onTextMessageEndEvent: () => {
+				markErrorPushed: () => {
+					if (errorPushed) return false;
+					errorPushed = true;
+					return true;
+				},
+				markTextEnd: () => {
 					textEndReceived = true;
 				},
-				onRunErrorEvent: (params) => {
-					if (errorPushed) return;
-					errorPushed = true;
-					push({ type: "error", message: params.event.message });
-				},
-				onRunFailed: (params) => {
-					if (errorPushed) return;
-					errorPushed = true;
-					push({ type: "error", message: params.error.message });
-				},
-				onRunFinishedEvent: () => {
-					// will be marked done after runAgent resolves
-				},
-				onToolCallStartEvent: (params) => {
-					const id = params.event.toolCallId;
-					const name =
-						(params.event as { toolCallName?: string }).toolCallName ??
-						(params.event as { name?: string }).name ??
-						"";
-					toolCalls.set(id, { id, name });
-					if (name) {
-						push({
-							type: "status",
-							label: `Calling ${name}\u2026`,
-							key: `tool:${id}`,
-						});
-					}
-				},
-				onToolCallArgsEvent: (params) => {
-					const tc = toolCalls.get(params.event.toolCallId);
-					if (tc) tc.args = (tc.args ?? "") + (params.event.delta ?? "");
-				},
-				onToolCallEndEvent: (params) => {
-					push({
-						type: "status",
-						label: "",
-						done: true,
-						key: `tool:${params.event.toolCallId}`,
-					});
-				},
-				onToolCallResultEvent: (params) => {
-					const tc = toolCalls.get(params.event.toolCallId);
-					if (tc) tc.result = params.event.content;
-				},
-				onStepStartedEvent: (params) => {
-					const stepName =
-						(params.event as { stepName?: string }).stepName ?? "";
-					if (stepName) {
-						push({
-							type: "status",
-							label: `${stepName}\u2026`,
-							key: `step:${stepName}`,
-						});
-					}
-				},
-				onStepFinishedEvent: (params) => {
-					const stepName =
-						(params.event as { stepName?: string }).stepName ?? "";
-					push({
-						type: "status",
-						label: "",
-						done: true,
-						key: stepName ? `step:${stepName}` : undefined,
-					});
-				},
-			};
+			});
 
 			const abortController = new AbortController();
 			const onConsumerAbort = () => abortController.abort();
@@ -300,11 +220,28 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 				return mapData([...toolCalls.values()]);
 			};
 
-			// Run agent in background, push events via subscriber
+			if (options.debug) {
+				// eslint-disable-next-line no-console
+				console.log(
+					"%c[agui] runAgent →",
+					"color:#0a7;font-weight:bold",
+					options.url,
+					{ threadId: agent.threadId, model: agent.model },
+				);
+			}
 			const runPromise = agent
 				.runAgent({ abortController }, subscriber)
 				.then((result) => {
-					// If streaming didn't deliver text, use newMessages as fallback
+					if (options.debug) {
+						// eslint-disable-next-line no-console
+						console.log(
+							"%c[agui] runAgent resolved",
+							"color:#0a7;font-weight:bold",
+							result,
+						);
+					}
+					// Fallback: streaming path didn't deliver text — pull
+					// the assistant text from `result.newMessages`.
 					if (!textEndReceived) {
 						const msgs = result.newMessages ?? [];
 						const assistantText = msgs
@@ -318,6 +255,10 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 					}
 				})
 				.catch((err: Error) => {
+					if (options.debug) {
+						// eslint-disable-next-line no-console
+						console.error("%c[agui] runAgent rejected", "color:#d22", err);
+					}
 					if (err.name !== "AbortError" && !errorPushed) {
 						errorPushed = true;
 						push({ type: "error", message: err.message });
@@ -339,8 +280,16 @@ export const agUiAdapter = (options: AgUiAdapterOptions): IChatAdapter => {
 
 			// Yield events as they arrive
 			while (true) {
-				if (queue.length > 0) {
-					const item = queue.shift()!;
+				if (head < queue.length) {
+					const item = queue[head];
+					queue[head] = null as unknown as QueueItem; // free reference
+					head++;
+					// Periodically reclaim head slack to keep memory flat
+					// for very long streams (thousands of events).
+					if (head > 256 && head * 2 > queue.length) {
+						queue.splice(0, head);
+						head = 0;
+					}
 					if (item === null) break;
 					yield item;
 				} else if (finished) {

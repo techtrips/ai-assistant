@@ -39,6 +39,8 @@ export const AIAssistant = (props: IAIAssistantProps) => {
 		isStreaming,
 		streamingText,
 		statusLabel,
+		streamingActivities,
+		hasToolActivity,
 		totalMessageCount,
 		loadOlderMessages,
 		sendMessage,
@@ -76,6 +78,8 @@ export const AIAssistant = (props: IAIAssistantProps) => {
 						isStreaming={isStreaming}
 						streamingText={streamingText}
 						statusLabel={statusLabel}
+						streamingActivities={streamingActivities}
+						hasToolActivity={hasToolActivity}
 						totalMessageCount={totalMessageCount}
 						onLoadMore={loadOlderMessages}
 					/>

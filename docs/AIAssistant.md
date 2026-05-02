@@ -103,6 +103,7 @@ const myCustomRenderer: IMessageRenderer = {
 | Prop | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `chatAdapter` | `IChatAdapter` | Yes | — | Chat adapter that handles message transport (see Adapters below). |
+| `agentName` | `string` | No | — | Scopes the assistant to a single agent. When set, the discovery call is skipped and the value is pushed into the service via `setAgentName()` so per-request URLs (templates, settings, conversations, starter prompts) stay scoped. Single source of truth — do **not** also pass `agentName` to the service. |
 | `theme` | `'light' \| 'dark'` | No | `'light'` | Color theme. |
 | `greetingText` | `string` | No | — | Greeting shown when the chat is empty. |
 | `headerText` | `string` | No | `'AI Assistant'` | Header title text. |
@@ -452,6 +453,7 @@ const service = new AIAssistantService({
 
 | Method | Description |
 |--------|-------------|
+| `setAgentName(name?)` | Updates the agent scope used for per-request URLs. Driven by the `<AIAssistant agentName>` prop — hosts rarely call this directly. |
 | `getAgentNames()` | Fetches available agent names. |
 | `getUserSettings()` | Fetches user-level settings. |
 | `getGlobalSettings()` | Fetches global (admin) settings. |
