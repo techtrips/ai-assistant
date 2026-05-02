@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [2.1.1](#211--2026-05-02) | 2026-05-02 | Assistant message preamble reorders so the timestamp follows the activity pill — reads as `[icon] Activity · N steps · HH:MM` instead of timestamp-then-activity. |
 | [2.1.0](#210--2026-05-02) | 2026-05-02 | `agUiAdapter` gained an `extraHeaders` option for per-request custom HTTP headers (tenant ids, correlation ids, request-scoped credential bags). Non-breaking — absent option preserves prior behavior. |
 | [2.0.0](#200--2026-05-02) | 2026-05-02 | **Breaking:** React, React-DOM, Fluent UI, and AG-UI moved to `peerDependencies`; `"exports"` field locks the public API to `lib/index.js`. Pre-release hardening: gated debug logs, token-error surfacing, request-timeout option, memoized chat bubbles, LRU renderer cache, lazy-mount activity row details, copy buttons in raw logs, jest test runner. |
 | [1.8.0](#180--2026-05-02) | 2026-05-02 | Settings panel gained admin-controlled **extension visibility toggles**, **renderer reorder UI**, and **Markdown** renderer toggle. **Default renderer chain** trimmed: `dynamicUi` removed (still exported — hosts must opt in via `messageRenderers`). New **`agentName` prop** on `<AIAssistant>` is now the single source of truth for agent scoping; `AIAssistantService` constructor no longer accepts `agentName` (use `setAgentName` for non-React consumers). |
@@ -36,6 +37,15 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+## [2.1.1] — 2026-05-02
+
+Cosmetic tweak to the assistant message preamble. The timestamp now follows the activity pill instead of preceding it, so the row reads in the order the user produces it: identity → progress → time. No API or behavior changes.
+
+### Changed
+
+- **Assistant message preamble order**: `[avatar] [activity pill · N steps] [HH:MM]` (was `[avatar] [HH:MM] [activity pill · N steps]`). Affects only `<ChatMessageBubble>`; the activity pill itself is unchanged and still gated by `settings.showAgentActivity`.
 
 ---
 ## [2.1.0] — 2026-05-02

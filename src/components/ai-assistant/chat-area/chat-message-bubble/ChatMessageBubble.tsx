@@ -63,14 +63,14 @@ const ChatMessageBubbleImpl = ({ message }: IChatMessageBubbleProps) => {
 				<span className={classes.avatar}>
 					<SparkleRegular fontSize={18} />
 				</span>
-				<span className={classes.assistantPreambleTime}>
-					{formatTime(message.timestamp)}
-				</span>
 				{!isLoading &&
 				settings?.showAgentActivity &&
 				message.data?.activities?.length ? (
 					<ActivityDetails activities={message.data.activities} inline />
 				) : null}
+				<span className={classes.assistantPreambleTime}>
+					{formatTime(message.timestamp)}
+				</span>
 			</div>
 			{isLoading ? (
 				<>
