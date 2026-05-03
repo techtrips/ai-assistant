@@ -188,6 +188,13 @@ export const useAIAssistant = ({
 						...DEFAULT_ENABLED_RENDERERS,
 						...(globalResult.data?.enabledRenderers ?? {}),
 					};
+					// enabledExtensions and rendererOrder are admin-only too. The
+					// API stores empty objects/arrays for unset user-level fields,
+					// so without these explicit overrides the user spread above
+					// would clobber the admin's real values with empties.
+					merged.enabledExtensions =
+						globalResult.data?.enabledExtensions ?? {};
+					merged.rendererOrder = globalResult.data?.rendererOrder ?? [];
 					setSettings(merged);
 
 					setAgentNames(allAgents);
@@ -234,6 +241,12 @@ export const useAIAssistant = ({
 				...DEFAULT_ENABLED_RENDERERS,
 				...(global.enabledRenderers ?? {}),
 			};
+			// enabledExtensions and rendererOrder are admin-only as well; the
+			// API persists empty defaults on user-level rows, so without these
+			// explicit overrides toggles in "Visible features" appear to have
+			// no effect (user empty wins over global).
+			merged.enabledExtensions = global.enabledExtensions ?? {};
+			merged.rendererOrder = global.rendererOrder ?? [];
 			setSettings(merged);
 		},
 		[],

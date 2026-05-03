@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [2.1.2](#212--2026-05-03) | 2026-05-03 | Fix: admin-controlled `enabledExtensions` and `rendererOrder` no longer get clobbered by empty user-row defaults — "Visible features" toggles now persist correctly. Settings UI labels the **Renderers** and **Visible features** sections with a "Global setting — changes apply to all users" hint. |
 | [2.1.1](#211--2026-05-02) | 2026-05-02 | Assistant message preamble reorders so the timestamp follows the activity pill — reads as `[icon] Activity · N steps · HH:MM` instead of timestamp-then-activity. |
 | [2.1.0](#210--2026-05-02) | 2026-05-02 | `agUiAdapter` gained an `extraHeaders` option for per-request custom HTTP headers (tenant ids, correlation ids, request-scoped credential bags). Non-breaking — absent option preserves prior behavior. |
 | [2.0.0](#200--2026-05-02) | 2026-05-02 | **Breaking:** React, React-DOM, Fluent UI, and AG-UI moved to `peerDependencies`; `"exports"` field locks the public API to `lib/index.js`. Pre-release hardening: gated debug logs, token-error surfacing, request-timeout option, memoized chat bubbles, LRU renderer cache, lazy-mount activity row details, copy buttons in raw logs, jest test runner. |
@@ -37,6 +38,19 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+## [2.1.2] — 2026-05-03
+
+Bug-fix and a small UX clarification for admin-managed settings.
+
+### Fixed
+
+- **Admin-only settings no longer clobbered by user-row defaults.** `enabledExtensions` and `rendererOrder` are global (admin-controlled), but the API persists empty defaults on every user-level save. Previously the merge `{ ...DEFAULT, ...global, ...user }` let those empty user-row values overwrite the admin's real configuration, making toggles in **Visible features** appear to revert after the next page load. The merge now treats both fields the same way `enabledRenderers` was already handled — the global value always wins. Affects `useAIAssistant` (initial load + `updateSettings`).
+
+### Changed
+
+- **Settings panel: "Renderers" and "Visible features" sections show a global-scope hint** ("Global setting — changes apply to all users.") so admins know toggling these affects every user of the assistant, not just themselves. Cosmetic only; no behavior change.
 
 ---
 ## [2.1.1] — 2026-05-02

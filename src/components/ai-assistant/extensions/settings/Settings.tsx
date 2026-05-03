@@ -107,6 +107,9 @@ const SettingsPanel = ({ onClose }: IExtensionProps) => {
 						{orderedRendererTypes.length > 0 && (
 							<div className={classes.section}>
 								<span className={classes.sectionTitle}>Renderers</span>
+								<span className={classes.sectionHint}>
+									Global setting — changes apply to all users.
+								</span>
 								<div className={classes.card}>
 									{orderedRendererTypes.map((type, idx) => {
 										const renderers =
@@ -163,6 +166,9 @@ const SettingsPanel = ({ onClose }: IExtensionProps) => {
 						{toggleableExtensions.length > 0 && (
 							<div className={classes.section}>
 								<span className={classes.sectionTitle}>Visible features</span>
+								<span className={classes.sectionHint}>
+									Global setting — changes apply to all users.
+								</span>
 								<div className={classes.card}>
 									{toggleableExtensions.map((ext) => {
 										const key = ext.extensionMeta.key;

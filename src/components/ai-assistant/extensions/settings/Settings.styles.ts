@@ -30,6 +30,11 @@ export const useSettingsStyles = makeStyles({
 		letterSpacing: "0.5px",
 		...shorthands.padding("0", "2px"),
 	},
+	sectionHint: {
+		fontSize: tokens.fontSizeBase200,
+		color: tokens.colorNeutralForeground3,
+		...shorthands.padding("0", "2px"),
+	},
 	card: {
 		...shorthands.border("1px", "solid", tokens.colorNeutralStroke2),
 		...shorthands.borderRadius(tokens.borderRadiusMedium),
