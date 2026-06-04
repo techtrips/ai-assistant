@@ -8,6 +8,7 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [2.1.3](#213--2026-06-04) | 2026-06-04 | Fix: starter-prompts popover now respects the host `theme` — surface renders in-place (no portal) so the assistant's CSS variables cascade, and item text is forced white in dark theme. |
 | [2.1.2](#212--2026-05-03) | 2026-05-03 | Fix: admin-controlled `enabledExtensions` and `rendererOrder` no longer get clobbered by empty user-row defaults — "Visible features" toggles now persist correctly. Settings UI labels the **Renderers** and **Visible features** sections with a "Global setting — changes apply to all users" hint. |
 | [2.1.1](#211--2026-05-02) | 2026-05-02 | Assistant message preamble reorders so the timestamp follows the activity pill — reads as `[icon] Activity · N steps · HH:MM` instead of timestamp-then-activity. |
 | [2.1.0](#210--2026-05-02) | 2026-05-02 | `agUiAdapter` gained an `extraHeaders` option for per-request custom HTTP headers (tenant ids, correlation ids, request-scoped credential bags). Non-breaking — absent option preserves prior behavior. |
@@ -38,6 +39,15 @@ All notable changes to `@techtrips/ai-assistant` are documented here. The format
 | [0.1.1](#011--2026-04-19) | 2026-04-19 | Extract useAIAssistant hook, Settings extension, parameterized prompts, types/models convention |
 | [0.1.0](#010--2026-04-19) | 2026-04-19 | Initial release — AIAssistant, TemplateRenderer, TemplateDesigner |
 
+
+---
+## [2.1.3] — 2026-06-04
+
+Bug-fix for starter-prompts popover theming.
+
+### Fixed
+
+- **Starter-prompts popover respects the assistant `theme`.** The Fluent `Popover` portals its surface to `document.body` by default, which placed the prompt list outside the assistant's DOM subtree. That broke two things: the `--agent-chat-*` CSS variables defined on the assistant root did not resolve, and the outer FluentProvider tokens fell back to defaults — producing a near-white surface with black item text in dark theme. The popover now renders inline (in-place in the DOM tree) so the assistant's theme variables cascade. In dark theme, prompt item text is additionally forced to `#ffffff` so it stays legible regardless of the host's token resolution.
 
 ---
 ## [2.1.2] — 2026-05-03

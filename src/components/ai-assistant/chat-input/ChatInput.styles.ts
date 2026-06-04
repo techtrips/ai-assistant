@@ -207,6 +207,7 @@ export const useChatInputStyles = makeStyles({
 		...shorthands.padding("8px", "14px"),
 		...shorthands.border("none"),
 		backgroundColor: "transparent",
+		color: "inherit",
 		cursor: "pointer",
 		textAlign: "left",
 		fontFamily: "inherit",
@@ -236,7 +237,7 @@ export const useChatInputStyles = makeStyles({
 	promptsItemTitle: {
 		fontSize: tokens.fontSizeBase200,
 		fontWeight: tokens.fontWeightRegular,
-		color: "var(--agent-chat-fg)",
+		color: "inherit",
 		lineHeight: tokens.lineHeightBase200,
 	},
 	promptsEmpty: {

@@ -192,8 +192,7 @@ export const useAIAssistant = ({
 					// API stores empty objects/arrays for unset user-level fields,
 					// so without these explicit overrides the user spread above
 					// would clobber the admin's real values with empties.
-					merged.enabledExtensions =
-						globalResult.data?.enabledExtensions ?? {};
+					merged.enabledExtensions = globalResult.data?.enabledExtensions ?? {};
 					merged.rendererOrder = globalResult.data?.rendererOrder ?? [];
 					setSettings(merged);
 

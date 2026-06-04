@@ -39,15 +39,19 @@ const ChatMessageBubbleImpl = ({ message }: IChatMessageBubbleProps) => {
 	}
 
 	if (message.role === "error") {
+		const raw = message.content ?? "";
+		const isRateLimited =
+			/\b429\b/.test(raw) || /too[\s_-]?many[\s_-]?requests/i.test(raw);
+		const friendly = isRateLimited
+			? "I'm being rate-limited right now. Please try again in a moment."
+			: "Something went wrong. Please try again.";
 		return (
 			<div className={classes.assistantBlock}>
 				<div className={classes.assistantPreamble}>
 					<span className={classes.avatar}>
 						<SparkleRegular fontSize={18} />
 					</span>
-					<span className={classes.errorText}>
-						Something went wrong. Please try again.
-					</span>
+					<span className={classes.errorText}>{friendly}</span>
 				</div>
 			</div>
 		);

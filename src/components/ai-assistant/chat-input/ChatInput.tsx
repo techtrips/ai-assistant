@@ -12,6 +12,7 @@ import {
 	Stop16Filled,
 } from "@fluentui/react-icons";
 import { useMemo, useState } from "react";
+import { useAIAssistantContext } from "../AIAssistantContext";
 import { VoiceInput } from "./voice-input";
 import { useChatInputStyles } from "./ChatInput.styles";
 import { useChatInput } from "./useChatInput";
@@ -26,6 +27,7 @@ export const ChatInput = ({
 	onSelectPrompt,
 }: IChatInputProps) => {
 	const classes = useChatInputStyles();
+	const { theme } = useAIAssistantContext();
 	const {
 		value,
 		setValue,
@@ -123,6 +125,7 @@ export const ChatInput = ({
 								open={promptsOpen}
 								onOpenChange={(_, data) => setPromptsOpen(data.open)}
 								positioning={{ position: "above", align: "start" }}
+								inline
 								trapFocus
 							>
 								<PopoverTrigger disableButtonEnhancement>
@@ -135,7 +138,10 @@ export const ChatInput = ({
 										<LightbulbRegular fontSize={20} />
 									</button>
 								</PopoverTrigger>
-								<PopoverSurface className={classes.promptsPopover}>
+								<PopoverSurface
+									className={classes.promptsPopover}
+									style={theme === "dark" ? { color: "#ffffff" } : undefined}
+								>
 									<div className={classes.promptsSearchWrap}>
 										<Search16Regular
 											fontSize={14}
